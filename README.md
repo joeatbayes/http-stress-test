@@ -46,7 +46,7 @@ numReq= 9 elapSec= 0.0350985 numSuc= 7 numFail= 2 failRate= 0 reqPerSec= 256.421
 ## Command Line API
 
 ```
-httpTest  -in=data/test_airsolarwater_dem_index.txt -out=test1.log.txt  -maxthread=100
+httpTest  -in=data/sample-1.txt -out=test1.log.txt  -MaxThread=100
 ```
 
 ​    
@@ -125,25 +125,76 @@ httpTest  -in=data/test_airsolarwater_dem_index.txt -out=test1.log.txt  -maxthre
 
 ## Build / Setup
 
- Download the Metadata server repository
-
-cd  RepositoryBaseDir 
-
-​	eg:  cd \jsoft\mdsgo
-
-​	This is the directory where you downloaded the repository.   
+To build local version
 
 ```
-go build src/GenericHTTPTestClient.go
+go get -u -t "github.com/joeatbayes/http-stress-test/httpTest"
+```
+
+It will create a executable in your current directory bin/httpTest.  For windows it will be httpTest.exe.  You will need to copy it to a location in the search path or add that directory to the search path.
+
+ Windows
+
+go build -o httpTest.exe "github.com/joeatbayes/http-stress-test/httpTest"
+
+Linux
+
+go build -o httpTest "github.com/joeatbayes/http-stress-test/httpTest"
+
+### For Development
+
+ Download the Metadata server repository
+
+```
+git clone https://github.com/joeatbayes/http-stress-test httpTest
+```
+
+```
+# Make your currenct directory the directory where you
+# downloaded the repository
+# cd  RepositoryBaseDir 
+cd \jsoft\httpTest
+# Use forward slash on 
+# This is the directory where you downloaded the repository.   
+```
+
+​	
+
+```
+go get -u "github.com/joeatbayes/goutil/jutil"
+go build src/httpTest.go
 ```
 
   or  
 
 ```
+# Windows
 makeGO.bat
+
+# Linux
+makeGO.sh
+
 ```
 
 
+
+
+
+
+
+## Important Files
+
+* [data/sample-1.txt](data/sample-1.txt) - Sample input data to drive some simple tests
+
+* [actions.md](actions.md) - list of feature enhancements under consideration.  Roughly listed in order.
+
+* [httpTest.go](src/httpTest.go) - GO source code for main driver supporting this test.
+
+* [makego.bat](makego.bat) - windows batch file to build the httpTest executable
+
+* [makego.sh](makego.sh) - linux shell script to build the httpTest executable
+
+  [goutil github repository](https://github.com/joeatbayes/goutil) This code requires code that will be automatically downloaded when building this too.
 
 ## Some other repositories:
 
