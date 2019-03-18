@@ -1,47 +1,47 @@
-# http stress test
-HTTP Test and Stress Test Utility with ability to run hundreds of threads.  Uses a simplified TEXT format based on JSON to specify URI, METHOD, BODY, Supports checking response codes and RE matching against body.
+# http stress tester
+HTTP Test case runner and Stress Test Utility
 
-# Generic HTTP Test Client
+*  Ability to run from 1 to hundreds of concurrent requests across a wide variety complex use cases.
+* Uses easily edited text format based on JSON to specify URI, METHOD, BODY and response matching.    [sample test script](data/sample-1.txt)
+* Fully supports parallel execution with semantics to force all operations to finish before it starts the next stage of testing which can be required when some tests must complete before others can be started. 
+* Will show the test ID and status for every test ran making it easy to integrate into a CICD pipeline.
+* Provides RE matching of HTTP response and body to validate good responses.
+* Provides RE no match to check proper filtering. 
+
+###How it Compares
+
+* Compares to [newman portion of postman](https://github.com/postmanlabs/newman) but supplies superior multi-threaded performance or stress testing.    
+* Provides free and higher performance stress test than  [load runner](https://www.microfocus.com/en-us/products/loadrunner-load-testing/overview)
 
 [httpTest](src/httpTest.go) provides a data driven, multi threaded test client able to support running at many threads for a while then waiting for all concurrent threads to finish before starting the next test.  This provides basic support for read after write tests.   It also provides easily parsed output that can be used to feed test results into downstream tools.  
 
 The input to Generic Test client is a text file containing a series of JSON strings that describe each test.   It includes a few directives such as #WAIT to indicate a desire to wait for all prior requests to finish.   Comment strings are lines starting with #WAIT
 
+## Local Build / Setup
 
-
-> ## Example Output
+Once you have the  [golang compiler](https://golang.org/dl/) installed.    
 
 ```
-httpTest.go
-SUCESS: L125: id= 0183 	message= saving JSON record
-L209: waiting queue= 0 reqPending= 1
-SUCESS: L125: id= 0184G 	message= Read after write
-L209: waiting queue= 0 reqPending= 1
-SUCESS: L125: id= 0184M 	message= Read after write existing record
-SUCESS: L125: id= 0185 	message= Check Mismatched 404 miss on known bad key
-FAIL: L128: id=0186 	message=Check unepected response code  	err Msg=	L:97 Expected StatusCode= 519  got= 404
-  	verb=GET uri=http://127.0.0.1:9601/mds/test/1817127X5
-FAIL: L128: id=0184F 	message=Check re No Match functionality should fail 	err Msg= L120:FAIL ReNoMatch pattern found in record reNoMatch= .*JOHN MUIR.*  match= true
-  	verb=GET uri=http://127.0.0.1:9601/mds/test/1817127X3
-L209: waiting queue= 0 reqPending= 4
-SUCESS: L125: id= 0187 	message= Delete a JSON record
-L209: waiting queue= 0 reqPending= 1
-SUCESS: L125: id= 0188 	message= Read after delete
-SUCESS: L125: id= 0189 	message= Delete a previously deleted record
-Finished Queing
- took 0.000468 min
-Finished all test records
- took 0.000501 min
-numReq= 9 elapSec= 0.0350985 numSuc= 7 numFail= 2 failRate= 0 reqPerSec= 256.42121458181975
+go get -u -t "github.com/joeatbayes/http-stress-test/httpTest"
 ```
 
+It will create a executable in your GOPATH directory in bin/httpTest.  For windows it will be httpTest.exe.  If GOPATH is set the /tmp then the executable will be written to /tmp/bin/httpTest under Linux or /tmp/bin/httpTest.exe for windows. 
 
+Once you build the executable you can copy it to other computers without the compiler. 
+
+HINT: set GOTPATH= your current working directory.  Or set it to your desired target directory and the go get command will create the executable in bin inside of that directory which is good because you may not have write privileges to the default GOPATH.
+
+##### To Download all pre-built test cases, scripts and sourcecode
+
+```
+git clone https://github.com/joeatbayes/http-stress-test httpTest
+```
+
+You could also just save the [sample script](https://raw.githubusercontent.com/joeatbayes/http-stress-test/master/data/sample-1.txt) using your browser or curl and edit it to use the executable built above. 
 
 ## Assumptions
 
 - Unless specified otherwise assumes all requests can be completed in any order which may in fact happen since they are ran in a multi threaded fashion.     
-
-
 
 ## Command Line API
 
@@ -121,29 +121,42 @@ httpTest  -in=data/sample-1.txt -out=test1.log.txt  -MaxThread=100
 
 - POST BODY IS URI Encoded in file but will be decoded prior to POSTING TO Test client.
 
-
-
-## Build / Setup
-
-To build local version
+> ## Example Output
 
 ```
-go get -u -t "github.com/joeatbayes/http-stress-test/httpTest"
+GenericHTTPTestClient.go
+Finished Queing
+ took 0.000033 min
+Finished all test records
+ took 0.000067 min
+FAIL: L128: elap=382.978ms       id=0182-DEM-CGI-CALL-GEOPOINT-EXPECT-FAIL      message=Checking CGI Geo Point  err Msg= L107:failed rematch= -19.71542,63.34569,1.00.*-19.71736,63.XXX34514
+        verb=GET uri=http://airsolarwater.com/dem/drains.svc?buri=gdata/dnt-rodrigues-island-50&offset=1591792&geo=-19.71542,63.34569
+
+SUCESS: L125: elap=383.976ms     id=0182-DEM-CGI-CALL-GEOPOINT message=Checking CGI Geo Point
+SUCESS: L125: elap=482.708ms     id=0182-google-home-contains-search    message=Google home must contain 'search' followed by 'div' followed by 'Google'
+SUCESS: L125: elap=520.611ms     id=0182772-airSolarWater-dem-index-contains-solomon    message=Air solar Water index must contain island names
+numReq= 4 elapSec= 0.5245668 numSuc= 3 numFail= 1 failRate= 0 reqPerSec= 7.625339613563039
 ```
 
-It will create a executable in your current directory bin/httpTest.  For windows it will be httpTest.exe.  You will need to copy it to a location in the search path or add that directory to the search path.
 
- Windows
 
-go build -o httpTest.exe "github.com/joeatbayes/http-stress-test/httpTest"
+## Important Files
 
-Linux
+- [data/sample-1.txt](data/sample-1.txt) - Sample input data to drive some simple tests
 
-go build -o httpTest "github.com/joeatbayes/http-stress-test/httpTest"
+- [actions.md](actions.md) - list of feature enhancements under consideration.  Roughly listed in order.
 
-### For Development
+- [httpTest.go](src/httpTest.go) - GO source code for main driver supporting this test.
 
- Download the Metadata server repository
+- [makego.bat](makego.bat) - windows batch file to build the httpTest executable
+
+- [makego.sh](makego.sh) - linux shell script to build the httpTest executable
+
+  [goutil github repository](https://github.com/joeatbayes/goutil) This code requires code that will be automatically downloaded when building this too.
+
+## Local  Development Build
+
+####  Download the Metadata server repository
 
 ```
 git clone https://github.com/joeatbayes/http-stress-test httpTest
@@ -176,27 +189,17 @@ makeGO.sh
 
 ```
 
+### Build to a specific location Direct from Repo
 
+```
+go get -u -t "github.com/joeatbayes/http-stress-test/httpTest"
+go build -o /tmp/httpTest.exe "github.com/joeatbayes/http-stress-test/httpTest"
+# Requires sucessful execution of the go get command above.
+```
 
+This will build a new executable and place it at the location specified in the -o. For windows the .exe extension is needed for Linux leave it off.  This will be a duplicate of the executable built during the go get command so it is probably better just move the one built by go get to a location the search path.
 
-
-
-
-## Important Files
-
-* [data/sample-1.txt](data/sample-1.txt) - Sample input data to drive some simple tests
-
-* [actions.md](actions.md) - list of feature enhancements under consideration.  Roughly listed in order.
-
-* [httpTest.go](src/httpTest.go) - GO source code for main driver supporting this test.
-
-* [makego.bat](makego.bat) - windows batch file to build the httpTest executable
-
-* [makego.sh](makego.sh) - linux shell script to build the httpTest executable
-
-  [goutil github repository](https://github.com/joeatbayes/goutil) This code requires code that will be automatically downloaded when building this too.
-
-## Some other repositories:
+## Some of my other repositories:
 
 - [file2consul](https://github.com/joeatbayes/file2consul)  Utility to load configuration parameters managed in GO into consul or HTTP server.  Supports inheritance,  parameter interpolation and other advanced techniques to minimize manual editing required to support multiple environments. 
 - [GoPackaging](https://github.com/joeatbayes/GoPackaging) - Example of how to package a library for direct use from go command line.  Also shows an example program that uses that library.   
