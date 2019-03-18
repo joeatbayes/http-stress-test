@@ -8,7 +8,7 @@ HTTP Test case runner and Stress Test Utility
 * Provides RE matching of HTTP response and body to validate good responses.
 * Provides RE no match to check proper filtering. 
 
-####How it Compares
+How it Compares
 
 * Compares to [newman portion of postman](https://github.com/postmanlabs/newman) but supplies superior multi-threaded performance or stress testing.    
 * Provides free and higher performance stress test than  [load runner](https://www.microfocus.com/en-us/products/loadrunner-load-testing/overview)
@@ -152,7 +152,7 @@ numReq= 4 elapSec= 0.5245668 numSuc= 3 numFail= 1 failRate= 0 reqPerSec= 7.62533
 
 - [makego.sh](makego.sh) - linux shell script to build the httpTest executable
 
-  [goutil github repository](https://github.com/joeatbayes/goutil) This code requires code that will be automatically downloaded when building this too.
+  [goutil github repository](https://github.com/joeatbayes/goutil)  [httpTest.go](httpTest.go/httpTest.go) requires code from goutil that will be automatically downloaded when building this too.
 
 ## Local  Development Build
 
