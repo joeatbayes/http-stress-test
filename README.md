@@ -8,14 +8,7 @@ HTTP Test case runner and Stress Test Utility
 * Provides RE matching of HTTP response and body to validate good responses.
 * Provides RE no match to check proper filtering. 
 
-How it Compares
-
-* Compares to [newman portion of postman](https://github.com/postmanlabs/newman) but supplies superior multi-threaded performance or stress testing.    
-* Provides free and higher performance stress test than  [load runner](https://www.microfocus.com/en-us/products/loadrunner-load-testing/overview)
-
 [httpTest](src/httpTest.go) provides a data driven, multi threaded test client able to support running at many threads for a while then waiting for all concurrent threads to finish before starting the next test.  This provides basic support for read after write tests.   It also provides easily parsed output that can be used to feed test results into downstream tools.  
-
-The input to Generic Test client is a text file containing a series of JSON strings that describe each test.   It includes a few directives such as #WAIT to indicate a desire to wait for all prior requests to finish.   Comment strings are lines starting with #WAIT
 
 ## Local Build / Setup
 
@@ -27,7 +20,8 @@ go get -u -t "github.com/joeatbayes/http-stress-test/httpTest"
 
 It will create a executable in your GOPATH directory in bin/httpTest.  For windows it will be httpTest.exe.  If GOPATH is set the /tmp then the executable will be written to /tmp/bin/httpTest under Linux or /tmp/bin/httpTest.exe for windows. 
 
-Once you build the executable you can copy it to other computers without the compiler. 
+> Once you build the httpTest executable you can copy it to other computers without the compiler.   It only requires the single executable file.
+>
 
 HINT: set GOTPATH= your current working directory.  Or set it to your desired target directory and the go get command will create the executable in bin inside of that directory which is good because you may not have write privileges to the default GOPATH.
 
@@ -198,6 +192,34 @@ go build -o /tmp/httpTest.exe "github.com/joeatbayes/http-stress-test/httpTest"
 ```
 
 This will build a new executable and place it at the location specified in the -o. For windows the .exe extension is needed for Linux leave it off.  This will be a duplicate of the executable built during the go get command so it is probably better just move the one built by go get to a location the search path.
+
+## **How httpTest Compares**
+
+- httpTest compares to [newman portion of postman](https://github.com/postmanlabs/newman) but supplies superior multi-threaded performance or stress testing.   Newman scripts are more flexible but httpTest scripts are easier to write and provide better scalability testing.   
+- Provides free and higher performance stress test than  [load runner](https://www.microfocus.com/en-us/products/loadrunner-load-testing/overview)  httpTest is better suited to rest service testing while load runner is better suited to full GUI/browser emulation.  
+- httpTest provides similar functionality to [JMeter](https://jmeter.apache.org/) when JMeter is configured to read URI from CSV but provides superior thread merge control for dependent transactions and far superior control when switching between very different requests that simulate a entire ecosystem.   httpTest is easier to generate input scripts from large data sets and has a much shorter learning curve.  JMeter is more mature, requires a larger stack and consumes more resources.  JMeter provides a GUI but is harder to configure when mutli-threaded testing of complex uses cases for REST services. 
+
+## Advanced Usage Example with Custom Headers
+
+```json
+
+{
+	"id": "0183",
+	"verb": "PUT",
+	"uri": "http://127.0.0.1:9601/mds/test/1817127X3",
+	"headers": {
+		"Content-Type": "application/JSON",
+		"Meta-Roles": "PUBLIC"
+	},
+	"expected": 200,
+	"rematch": ".*sucess.*",
+	"message": "saving JSON record",
+	"body": "{\"patientAgeRange\": \"NA\", \"orgName\": \"JOHN MUIR PHYSICIAN NETWORK\", \"combName\": \"PORTEOUS, BRENT\", \"product\": \"NA\", \"primaryLocation\": \"NA\", \"exclude\": false, \"uniqueLocKey\": \"JOHN MUIR PHYSICIAN NETWORK..1450 TREAT BLVD..945972168\", \"loc\": {\"lat\": 37.91, \"lon\": -122.07}, \"addr\": {\"city\": \"WALNUT CREEK\", \"zip\": \"945972168\", \"county\": \"NA\", \"state\": \"CA\", \"street\": \"1450 TREAT BLVD\", \"zipPlus4\": \"NA\"}, \"medicadeId\": \"6608789813\", \"languages\": \"NA\", \"email\": \"NA\", \"fax\": \"NA\", \"npi\": \"1083040463\", \"specialty\": [\"FAMILY PRACTICE\"], \"drName\": {\"middle\": \"\", \"last\": \"PORTEOUS\", \"suffix\": \"\", \"first\": \"BRENT\"}, \"phone\": \"9252969000\", \"publicTransitAccess\": \"NA\", \"handicapAccess\": \"NA\", \"credentials\": \"\", \"acceptMedicaid\": null, \"OfficeHours\": \"NA\", \"medSchool\": \"OTHER\", \"locations\": [{\"ccn\": \"050276\", \"lbn\": \"CONTRA COSTA REGIONAL MEDICAL CENTER\"}], \"gender\": \"M\", \"gradYear\": \"2012\"}"
+}
+#END
+```
+
+* NOTE:  To produce the post Body is must be escaped as a safe JSON string.  This can be done easily using an [online json escaper](https://www.freeformatter.com/json-escape.html)
 
 ## Some of my other repositories:
 
