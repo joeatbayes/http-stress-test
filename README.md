@@ -8,7 +8,7 @@ HTTP Test case runner and Stress Test Utility
 * Provides RE matching of HTTP response and body to validate good responses.
 * Provides RE no match to check proper filtering. 
 
-###How it Compares
+####How it Compares
 
 * Compares to [newman portion of postman](https://github.com/postmanlabs/newman) but supplies superior multi-threaded performance or stress testing.    
 * Provides free and higher performance stress test than  [load runner](https://www.microfocus.com/en-us/products/loadrunner-load-testing/overview)
