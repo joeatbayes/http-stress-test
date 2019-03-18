@@ -70,19 +70,30 @@ httpTest  -in=data/sample-1.txt -out=test1.log.txt  -MaxThread=100
 }
 #END
 
+# Test CGI Call to DEM Sub ssytem
+{  "id" : "0182-DEM-CGI-CALL-GEOPOINT",   
+   "verb" : "GET", 
+   "uri" : "http://airsolarwater.com/dem/drains.svc?buri=gdata/dnt-rodrigues-island-50&offset=1591792&geo=-19.71542,63.34569", 
+   "expected" : 200, 
+   "rematch" : "-19.71542,63.34569,1.00.*-19.71736,63.34514", 
+   "message" :"Checking CGI Geo Point"
+}
+#END
+
 # Test Google page contains expected text
 {  "id" : "0182-google-home-contains-search",   
    "verb" : "GET", 
-   "uri" : "https://google", 
+   "uri" : "https://google.com", 
    "expected" : 200, 
-   "rematch" : ".*Search\<\/div\>.*Google", 
-   "message" :"Air solar Water index must contain island names"
+   "rematch" : ".*Search.*div.*Google", 
+   "message" :"Google home must contain 'search' followed by 'div' followed by 'Google'"
 }
 #END
 
 ```
 
-
+> SEE Advanced Examples including Custom Headers below
+>
 
 - A series of lines containing JSON text which represents the specifications for the test 
 
@@ -224,6 +235,10 @@ This will build a new executable and place it at the location specified in the -
 ```
 
 * NOTE:  To produce the post Body is must be escaped as a safe JSON string.  This can be done easily using an [online json escaper](https://www.freeformatter.com/json-escape.html)
+
+#### Supporting OIDC From the Tester
+
+* TODO: Add and Example Here
 
 ## Some of my other repositories:
 
