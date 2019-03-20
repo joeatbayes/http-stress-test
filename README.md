@@ -170,11 +170,21 @@ numReq= 4 elapSec= 0.5245668 numSuc= 3 numFail= 1 failRate= 0 reqPerSec= 7.62533
 
 Get A session token from one REST call and pass it as part of custom header in the next test case.
 
+```
+httpTest  -in=data/002-sample-login-token-passed-as-header.txt -out=test1.log.txt  -MaxThread=10 -userid=testuser -passwd=tiger1928A2 -ENV=TST  
+
+# Demonstrate passing the userid and password in as command line parameters
+# and saving the result as a named value to be used as token in subsequent
+# calls.
+```
+
+
+
 ```json
 # Login and get a session token
 {  "id" : "018-login",   
    "verb" : "GET", 
-   "uri" : "https://abcdex1.org/login?user=test&pass=alive",
+   "uri" : "https://abcdex1.{ENV}.org/login?user={userid}&pass={passwd}",
    "expected" : 200, 
    "keepBodyAs" : "sessionToken",
    "keepBodyDefault" : "D1A2C8F10A0AB0C0A1DEFAULT"

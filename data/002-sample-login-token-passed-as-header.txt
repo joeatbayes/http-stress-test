@@ -2,7 +2,7 @@
 # Login and get a session token
 {  "id" : "018-login",   
    "verb" : "GET", 
-   "uri" : "https://abcdex1.org/login?user=test&pass=alive",
+   "uri" : "https://abcdex1.{ENV}.org/login?user={userid}&pass={passwd}",
    "expected" : 200, 
    "keepBodyAs" : "sessionToken",
    "keepBodyDefault" : "D1A2C8F10A0AB0C0A1DEFAULT"
