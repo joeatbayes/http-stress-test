@@ -1,8 +1,6 @@
 ## ACTIONS: 
 
-* Add ability to parse environment variables specified on command line and interpolate into the script.
 * Add Ability to Read list of files on command line rather than single file.
-* Add ability to save results of a command into a named variable and then allow that variable to be interpolated into the JSON string before parsing. (Required for OIDC)
 * Add ability to specify a directory on command line rather than single file.  When specified process every file found in directory.
 * Allow specification of a default file extension.  Ignore files in directory that do not have the specified extension.
 * Add option to keep URI timing by base URI upto the ? or # as a set to show at end of report. Would want the fastest, slowest, average and number that exceed SLA.
@@ -22,4 +20,6 @@
 
 ## DONE:
 
+- DONE:JOE:2019-03-19: Add ability to save results of a command into a named variable and then allow that variable to be interpolated into the JSON string before parsing. (Required for OIDC)
+- DONE:JOE:2019-03-19: Add ability to parse environment variables specified on command line and interpolate into the script.
 - DONE: JOE:2017-10-20: Add ReNoMatch to ensure a given string is not in the result string from the service. 

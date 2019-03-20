@@ -182,9 +182,7 @@ Get A session token from one REST call and pass it as part of custom header in t
 #END
 #WAIT
 
-# See: https://golang.org/pkg/regexp/syntax/
-#   For RE Expression matching syntax 
-#
+
 # Test simple index page contains expected content.
 {  "id" : "0182772-airSolarWater-dem-index-contains-solomon",   
    "verb" : "GET", 
