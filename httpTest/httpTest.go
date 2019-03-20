@@ -12,7 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-
+	"path/filepath"
 	"regexp"
 	"strings"
 	s "strings"
@@ -26,6 +26,10 @@ type MTReader struct {
 	reqPending int
 	logFile    *os.File
 	pargs      *jutil.ParsedCommandArgs
+	inPaths    []string
+	processExt string // file name extension to use when processing directories.
+	linesChan  chan TestSpec
+	isDone     chan bool
 }
 
 func makeMTReader(outFiName string) *MTReader {
@@ -92,16 +96,20 @@ func (u *MTReader) procLine(spec *TestSpec) {
 	}
 
 	// TODO: Ieterate over set headers
-	for key, val := range spec.Headers {
-		sval := u.pargs.Interpolate(val)
-		skey := u.pargs.Interpolate(key)
-		req.Header.Set(skey, sval)
-		fmt.Println("L96: header key=", key, " val=", val, " skey=", skey, " val=", sval)
-	}
-	if spec.KeepBodyAs > " " {
-		// modify save name to make it easier to use without
-		// having to match the case in interpolation
-		spec.KeepBodyAs = s.TrimPrefix(s.ToLower(spec.KeepBodyAs), " ")
+	if spec.Headers != nil {
+		for key, val := range spec.Headers {
+			//fmt.Println("L94: header key=", key, " val=", val)
+			sval := u.pargs.Interpolate(val)
+			skey := u.pargs.Interpolate(key)
+			req.Header.Set(skey, sval)
+			//fmt.Println("L105: sval=", sval)
+			//fmt.Println("L96: header key=", key, " val=", val, " skey=", skey, " val=", sval)
+		}
+		if spec.KeepBodyAs > " " {
+			// modify save name to make it easier to use without
+			// having to match the case in interpolation
+			spec.KeepBodyAs = s.TrimPrefix(s.ToLower(spec.KeepBodyAs), " ")
+		}
 	}
 
 	req.Header.Set("Connection", "close")
@@ -109,13 +117,17 @@ func (u *MTReader) procLine(spec *TestSpec) {
 	resp, err := hc.Do(req)
 	//fmt.Println(" L60: reps=", resp, "err=", err)
 	if err != nil {
-		fmt.Fprintln(u.logFile, "FAIL: L85: id=", spec.Id, " message=", spec.Message, "err=", err, "resp=", resp)
+		fmt.Fprintln(u.logFile, "FAIL: L85: id=", spec.Id, " message=", spec.Message, "err=", err)
+		fmt.Println("FAIL: L85: id=", spec.Id, " message=", spec.Message, "err=", err)
 		u.perf.NumFail += 1
 		u.reqPending--
 		reqStat = false
 		if spec.KeepBodyAs > " " && spec.KeepBodyDefault > " " {
-			fmt.Println("L106: keep default as failure keepBodyAs=", spec.KeepBodyAs, " default=", spec.KeepBodyDefault)
+			//fmt.Println("L106: keep default as failure keepBodyAs=", spec.KeepBodyAs, " default=", spec.KeepBodyDefault)
+			//fmt.Println("L108: u.pargs=", u.pargs)
+			//fmt.Println("L107: u.pargs.NamedStr=", u.pargs.NamedStr)
 			u.pargs.NamedStr[spec.KeepBodyAs] = spec.KeepBodyDefault
+			fmt.Println("L108: XXX")
 		}
 		return
 	}
@@ -190,37 +202,38 @@ var (
 )
 
 func PrintHelp() {
-	fmt.Println("httpTest -in=InputFileName -out=OutputFileName -MaxThread=5")
-	fmt.Println("  -in defaults to data/sample.txt")
-	fmt.Println("  -out defaults  httpTest.log.txt ")
-	fmt.Println(" -MaxThread defaults to 20")
+	fmt.Println(
+		`httpTest -in=InputFileName -out=OutputFileName -MaxThread=5 -ENV=TST
+	   -in defaults to data/sample.txt
+	    name of input paramter file or directory
+        If named resource is directory will process all 
+	    files in that directory.    Multiple inputs
+	    can be specified seprated by ;.  Each input set
+	    will be processed in order
+		
+	   -out defaults  httpTest.log.txt 
+	      Output log file where results will be written to allow
+		  for secondary analysis. 
+	
+	   -MaxThread defaults to 20
+	
+	   -ext = file extension to include for processing 
+	      when processing a full directory.  Defaults to
+		  txt.
+	
+	   -env =  variable used for interpolation.  An arbitrary
+	      set of variables can be defined in this fashion 
+		  and will be available for use with interpolation
+       -company = variable used for interpolation
+	-`)
 }
 
-func main() {
-	const procs = 2
-	const DefMaxWorkerThread = 20 //5 //150 //5 //15 // 50 // 350
-	const MaxQueueSize = 3000
-	const BaseURI = "http://127.0.0.1:9601/"
-	const DefInFiName = "data/sample.txt"
-	const DefOutFiName = "httpTest.log.txt"
-	parms := jutil.ParseCommandLine(os.Args)
-	if parms.Exists("help") {
-		PrintHelp()
-		return
-	}
-	MaxWorkerThread := parms.Ival("maxthread", int(DefMaxWorkerThread))
-	fmt.Println(parms.String())
-	inFiName := parms.Sval("in", DefInFiName)
-	outFiName := parms.Sval("out", DefOutFiName)
-
-	u := makeMTReader(outFiName)
-	u.pargs = parms
-	fmt.Fprintln(u.logFile, "GenericHTTPTestClient.go")
-	fmt.Println("TestCaseFiName=", inFiName, " baseURI=", BaseURI)
-	fmt.Println("OutFileName=", outFiName)
-	fmt.Println("MaxWorkerThread=", MaxWorkerThread)
-	fmt.Println("MaxQueueSize=", MaxQueueSize)
-
+// Process a single input file containing various test cases.
+func (u *MTReader) processFile(inFiName string) {
+	// Add the rows to the Queue
+	// so we can process them in parralell
+	// It is blocked at MaxQueueSize by the
+	// channel size.
 	start := time.Now().UTC()
 	inFile, err := os.Open(inFiName)
 	if err != nil {
@@ -230,32 +243,6 @@ func main() {
 	defer inFile.Close()
 
 	scanner := bufio.NewScanner(inFile)
-	linesChan := make(chan TestSpec, MaxQueueSize)
-	done := make(chan bool)
-
-	// Spin up 100 worker threads to post
-	// content to the server.
-
-	for i := 0; i < MaxWorkerThread; i++ {
-		go func() {
-			for {
-				spec, more := <-linesChan
-				if more {
-					u.procLine(&spec)
-					//fmt.Println("L128 spec=", spec)
-
-				} else {
-					done <- true
-					return
-				}
-			}
-		}()
-	}
-
-	// Add the rows to the Queue
-	// so we can process them in parralell
-	// It is blocked at MaxQueueSize by the
-	// channel size.
 	var b bytes.Buffer
 	for scanner.Scan() {
 		aline := scanner.Text()
@@ -274,16 +261,16 @@ func main() {
 					if err != nil {
 						fmt.Println("L222: FAIL: to parse err=", err, "str=", recStr)
 					} else {
-						linesChan <- spec
+						u.linesChan <- spec
 					}
 				}
 			} else if strings.HasPrefix(aline, "#WAIT") {
 				// Add a Pause
 				time.Sleep(9500)
-				fmt.Fprintln(u.logFile, "L208: waiting queue=", len(linesChan), "reqPending=", u.reqPending)
-				for len(linesChan) > 0 || u.reqPending > 0 {
+				fmt.Fprintln(u.logFile, "L208: waiting queue=", len(u.linesChan), "reqPending=", u.reqPending)
+				for len(u.linesChan) > 0 || u.reqPending > 0 {
 					u.logFile.Sync()
-					fmt.Fprintln(u.logFile, "L209: waiting queue=", len(linesChan), "reqPending=", u.reqPending)
+					fmt.Fprintln(u.logFile, "L209: waiting queue=", len(u.linesChan), "reqPending=", u.reqPending)
 					u.logFile.Sync()
 					time.Sleep(5500)
 					continue
@@ -296,12 +283,99 @@ func main() {
 			b.Write([]byte(aline))
 		}
 	}
-	close(linesChan)
+	close(u.linesChan)
 	u.logFile.Sync()
 	jutil.TimeTrackMin(u.logFile, start, "Finished Queing\n")
-	jutil.TimeTrackMin(u.logFile, start, "Finished all test records\n")
 
-	<-done // wait until queue has been marked as finished.
+}
+
+// Process a directory processing any files that match
+// -ext settings.
+func (u *MTReader) processDir(inFiName string) {
+	files, err := filepath.Glob("*." + u.processExt)
+	if err != nil {
+		fmt.Println("L289: ERROR processsing dir", inFiName, " err=", err)
+	} else {
+		for _, fiPath := range files {
+			u.processFile(fiPath)
+		}
+	}
+}
+
+// Process a path and determine whether it needs to
+// be processed as a file or a extension.
+func (u *MTReader) processPath(inFiName string) {
+	fi, err := os.Stat(inFiName)
+	switch {
+	case os.IsNotExist(err):
+		fmt.Println("L294: Error file ", inFiName, " does not exists")
+	case err != nil:
+		fmt.Println("L295: Error processing file ", inFiName, " err=", err)
+	case fi.IsDir():
+		u.processDir(inFiName)
+	default:
+		u.processFile(inFiName)
+	}
+}
+
+func main() {
+	const procs = 2
+	const DefMaxWorkerThread = 20 //5 //150 //5 //15 // 50 // 350
+	const MaxQueueSize = 3000
+	const BaseURI = "http://127.0.0.1:9601/"
+	const DefInFiName = "data/sample.txt"
+	const DefOutFiName = "httpTest.log.txt"
+	parms := jutil.ParseCommandLine(os.Args)
+	if parms.Exists("help") {
+		PrintHelp()
+		return
+	}
+	MaxWorkerThread := parms.Ival("maxthread", int(DefMaxWorkerThread))
+	fmt.Println(parms.String())
+	inPathStr := parms.Sval("in", DefInFiName)
+	outFiName := parms.Sval("out", DefOutFiName)
+	u := makeMTReader(outFiName)
+	u.inPaths = strings.Split(inPathStr, ";")
+	u.processExt = parms.Sval("txt", DefOutFiName)
+
+	fmt.Fprintln(u.logFile, "GenericHTTPTestClient.go")
+	fmt.Println("InPathStr=", inPathStr, " baseURI=", BaseURI)
+	fmt.Println("OutFileName=", outFiName)
+	fmt.Println("MaxWorkerThread=", MaxWorkerThread)
+	fmt.Println("MaxQueueSize=", MaxQueueSize)
+
+	start := time.Now().UTC()
+	u.pargs = parms
+	u.linesChan = make(chan TestSpec, MaxQueueSize)
+	u.isDone = make(chan bool)
+
+	// Spin up 100 worker threads to post
+	// content to the server.
+
+	for i := 0; i < MaxWorkerThread; i++ {
+		go func() {
+			for {
+				spec, more := <-u.linesChan
+				if more {
+					u.procLine(&spec)
+					//fmt.Println("L128 spec=", spec)
+
+				} else {
+					u.isDone <- true
+					return
+				}
+			}
+		}()
+	}
+
+	// Process all the files listed in the -in parameter
+	for _, path := range u.inPaths {
+		path = strings.TrimSpace(path)
+		u.processPath(path)
+	}
+
+	<-u.isDone // wait until queue has been marked as finished.
+	jutil.TimeTrackMin(u.logFile, start, "Finished all test records\n")
 	for u.reqPending > 0 {
 		time.Sleep(1500)
 	}

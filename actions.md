@@ -3,9 +3,12 @@
 * Add Ability to Read list of files on command line rather than single file.
 * Add ability to specify a directory on command line rather than single file.  When specified process every file found in directory.
 * Allow specification of a default file extension.  Ignore files in directory that do not have the specified extension.
+* Add option to save header value 
+* Add option to limit transactions to X per second.  Slow down the next request processed until RPS drops below the requested level. 
 * Add option to keep URI timing by base URI upto the ? or # as a set to show at end of report. Would want the fastest, slowest, average and number that exceed SLA.
 * Add option to read the body contents from a file relative to the location of the current script file.
 * Add the option for a #include which will include a  named in the input script.   
+* Modify input to use YAML or similar spec rather than JSON which requires more editing than desired. 
 
 
 ## Under Consideration
