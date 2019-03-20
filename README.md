@@ -44,7 +44,7 @@ You could also just save the [sample script](https://raw.githubusercontent.com/j
 ## Command Line API
 
 ```
-httpTest  -in=data/sample-1.txt -out=test1.log.txt  -MaxThread=100
+httpTest  -in=data/sample-1.txt -out=test1.log.txt  -MaxThread=100 -Environment=TST
 ```
 
 ​    
@@ -56,6 +56,7 @@ httpTest  -in=data/sample-1.txt -out=test1.log.txt  -MaxThread=100
 > > - **-in** = the name of the file containing test specifications.
 > > - **-out** = the name of the file to write test results and timing to.
 > > - **-MaxThread** = maximum number of concurrent requests submitted from client to servers.
+> > - **-Environment** = Arbitrarily named command parameter.   These can be used and interpolated into the URI,  header keys, header values and body string.   Essentially any named value can be added in the same fashion eg:  -mykey=001 where mykey can be any set of alphanumeric characters and value is any valid as a command parameter in the os shell.
 
 ## File Input Format
 
@@ -163,6 +164,108 @@ numReq= 4 elapSec= 0.5245668 numSuc= 3 numFail= 1 failRate= 0 reqPerSec= 7.62533
 
   [goutil github repository](https://github.com/joeatbayes/goutil)  [httpTest.go](httpTest.go/httpTest.go) requires code from goutil that will be automatically downloaded when building this too.
 
+## Advanced Usage 
+
+### Example with Custom Interpolated Headers
+
+Get A session token from one REST call and pass it as part of custom header in the next test case.
+
+```json
+# Login and get a session token
+{  "id" : "018-login",   
+   "verb" : "GET", 
+   "uri" : "https://abcdex1.org/login?user=test&pass=alive",
+   "expected" : 200, 
+   "keepBodyAs" : "sessionToken",
+   "keepBodyDefault" : "D1A2C8F10A0AB0C0A1DEFAULT"
+}
+#END
+#WAIT
+
+# See: https://golang.org/pkg/regexp/syntax/
+#   For RE Expression matching syntax 
+#
+# Test simple index page contains expected content.
+{  "id" : "0182772-airSolarWater-dem-index-contains-solomon",   
+   "verb" : "GET", 
+   "uri" : "https://airsolarwater.com/dem/", 
+   "headers": {
+      "sessionToken": "{sessionToken}",
+      "Meta-Roles": "PUBLIC",
+      "ENV" : "{ENVIRONMENT}"
+   },
+   "expected" : 200, 
+   "rematch" : ".*Solomon.*Tuvalu.*Tesla", 
+   "message" :"Air solar Water index must contain island names"
+}
+#END
+
+```
+
+```
+#WAIT - Forces the Logic request to finish before 
+  subsequent command is processed.   This is important because
+  we need the value saved using the keepBodyAs to interpolate
+  into the sessionToken header in subsequent tests.
+  
+keepBodyAs - Causes the results from the 01-login test case to be saved 
+  so it can be interpolated into future scripts.
+  
+keepBodyDefault - saves this string value when the call fails.
+
+headers {} - contains a list of headers to send with the command 
+  useful when custom headers are needed. 
+  
+{sessionToken} - in the headers array is the value sent as a
+  header for the key   "sessionToken}.  In this instance the
+  sessionToken was set as a named value in the prior test case
+  so we are actually passing that value interpolated from the
+  saved values.   The interpolation is triggered by surrounding
+  the name by {}.
+
+{ENvIRONMENT} - is passed as the data portion of the http header
+  "ENv" The actual value set is looked up in saved data values 
+  because the name is surrounded by {}.     This one could have
+  been set using by setting the value for ENVIORNMENT on the 
+  command line as shown
+  httpTest -in=data/sample-1.txt -out=test1.log.txt  -MaxThread=100 -Environment=TST   
+  
+  Any key value could be set on the command line and used for
+  interpolation.  For example if -myfavoritecolor=blue is set 
+  on the commmand line then it could be interpolated into the 
+  body or header as {myfavoritecolor}.  
+  
+  Interpolation can alsue be used in URI and header values.
+  For example if -ENV=test was used on command line and 
+  the uri was http://api.{ENV}.abc.org the uri interpolated
+  would be transformed into http://api.test.abc.org.  
+  
+```
+
+
+
+### Example With custom verb & post body
+
+```json
+{
+	"id": "0183",
+	"verb": "PUT",
+	"uri": "http://127.0.0.1:9601/mds/test/1817127X3",
+	"headers": {
+		"Content-Type": "application/JSON",
+		"Meta-Roles": "PUBLIC"
+	},
+	"expected": 200,
+	"rematch": ".*sucess.*",
+	"message": "saving JSON record",
+	"body": "{\"patientAgeRange\": \"NA\", \"orgName\": \"JOHN MUIR PHYSICIAN NETWORK\", \"combName\": \"PORTEOUS, BRENT\", \"product\": \"NA\", \"primaryLocation\": \"NA\", \"exclude\": false, \"uniqueLocKey\": \"JOHN MUIR PHYSICIAN NETWORK..1450 TREAT BLVD..945972168\", \"loc\": {\"lat\": 37.91, \"lon\": -122.07}, \"addr\": {\"city\": \"WALNUT CREEK\", \"zip\": \"945972168\", \"county\": \"NA\", \"state\": \"CA\", \"street\": \"1450 TREAT BLVD\", \"zipPlus4\": \"NA\"}, \"medicadeId\": \"6608789813\", \"languages\": \"NA\", \"email\": \"NA\", \"fax\": \"NA\", \"npi\": \"1083040463\", \"specialty\": [\"FAMILY PRACTICE\"], \"drName\": {\"middle\": \"\", \"last\": \"PORTEOUS\", \"suffix\": \"\", \"first\": \"BRENT\"}, \"phone\": \"9252969000\", \"publicTransitAccess\": \"NA\", \"handicapAccess\": \"NA\", \"credentials\": \"\", \"acceptMedicaid\": null, \"OfficeHours\": \"NA\", \"medSchool\": \"OTHER\", \"locations\": [{\"ccn\": \"050276\", \"lbn\": \"CONTRA COSTA REGIONAL MEDICAL CENTER\"}], \"gender\": \"M\", \"gradYear\": \"2012\"}"
+}
+#END
+```
+
+- NOTE:  To produce the post Body is must be escaped as a safe JSON string.  This can be done easily using an [online json escaper](https://www.freeformatter.com/json-escape.html)
+- 
+
 ## Local  Development Build
 
 ####  Download the Metadata server repository
@@ -214,27 +317,7 @@ This will build a new executable and place it at the location specified in the -
 - Provides free and higher performance stress test than  [load runner](https://www.microfocus.com/en-us/products/loadrunner-load-testing/overview)  httpTest is better suited to rest service testing while load runner is better suited to full GUI/browser emulation.  
 - httpTest provides similar functionality to [JMeter](https://jmeter.apache.org/) when JMeter is configured to read URI from CSV but provides superior thread merge control for dependent transactions and far superior control when switching between very different requests that simulate a entire ecosystem.   httpTest is easier to generate input scripts from large data sets and has a much shorter learning curve.  JMeter is more mature, requires a larger stack and consumes more resources.  JMeter provides a GUI but is harder to configure when mutli-threaded testing of complex uses cases for REST services. 
 
-## Advanced Usage Example with Custom Headers
-
-```json
-
-{
-	"id": "0183",
-	"verb": "PUT",
-	"uri": "http://127.0.0.1:9601/mds/test/1817127X3",
-	"headers": {
-		"Content-Type": "application/JSON",
-		"Meta-Roles": "PUBLIC"
-	},
-	"expected": 200,
-	"rematch": ".*sucess.*",
-	"message": "saving JSON record",
-	"body": "{\"patientAgeRange\": \"NA\", \"orgName\": \"JOHN MUIR PHYSICIAN NETWORK\", \"combName\": \"PORTEOUS, BRENT\", \"product\": \"NA\", \"primaryLocation\": \"NA\", \"exclude\": false, \"uniqueLocKey\": \"JOHN MUIR PHYSICIAN NETWORK..1450 TREAT BLVD..945972168\", \"loc\": {\"lat\": 37.91, \"lon\": -122.07}, \"addr\": {\"city\": \"WALNUT CREEK\", \"zip\": \"945972168\", \"county\": \"NA\", \"state\": \"CA\", \"street\": \"1450 TREAT BLVD\", \"zipPlus4\": \"NA\"}, \"medicadeId\": \"6608789813\", \"languages\": \"NA\", \"email\": \"NA\", \"fax\": \"NA\", \"npi\": \"1083040463\", \"specialty\": [\"FAMILY PRACTICE\"], \"drName\": {\"middle\": \"\", \"last\": \"PORTEOUS\", \"suffix\": \"\", \"first\": \"BRENT\"}, \"phone\": \"9252969000\", \"publicTransitAccess\": \"NA\", \"handicapAccess\": \"NA\", \"credentials\": \"\", \"acceptMedicaid\": null, \"OfficeHours\": \"NA\", \"medSchool\": \"OTHER\", \"locations\": [{\"ccn\": \"050276\", \"lbn\": \"CONTRA COSTA REGIONAL MEDICAL CENTER\"}], \"gender\": \"M\", \"gradYear\": \"2012\"}"
-}
-#END
-```
-
-* NOTE:  To produce the post Body is must be escaped as a safe JSON string.  This can be done easily using an [online json escaper](https://www.freeformatter.com/json-escape.html)
+* 
 
 #### Supporting OIDC From the Tester
 

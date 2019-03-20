@@ -15,6 +15,7 @@ import (
 
 	"regexp"
 	"strings"
+	s "strings"
 	"time"
 
 	"github.com/joeatbayes/goutil/jutil"
@@ -24,6 +25,7 @@ type MTReader struct {
 	perf       *jutil.PerfMeasure
 	reqPending int
 	logFile    *os.File
+	pargs      *jutil.ParsedCommandArgs
 }
 
 func makeMTReader(outFiName string) *MTReader {
@@ -44,20 +46,26 @@ func (r *MTReader) done() {
 }
 
 type TestSpec struct {
-	Id        string
-	Verb      string
-	Uri       string
-	Headers   map[string]string
-	Expected  int
-	Rematch   string
-	ReNoMatch string
-	Message   string
-	Body      string
+	Id              string
+	Verb            string
+	Uri             string
+	Headers         map[string]string
+	Expected        int
+	Rematch         string
+	ReNoMatch       string
+	Message         string
+	Body            string
+	KeepBodyAs      string
+	KeepBodyDefault string
 }
 
 func keepLines(s string, n int) string {
 	result := strings.Join(strings.Split(s, "\n")[:n], "\n")
 	return strings.Replace(result, "\r", "", -1)
+}
+
+func interpolate_str(s string) string {
+	return s
 }
 
 func (u *MTReader) procLine(spec *TestSpec) {
@@ -70,15 +78,30 @@ func (u *MTReader) procLine(spec *TestSpec) {
 	hc := http.Client{}
 	reqStat := true
 	errMsg := ""
-
-	req, err := http.NewRequest(spec.Verb, uri, bytes.NewBuffer([]byte(spec.Body)))
+	//fmt.Println("L49: spec id=", spec.Id, " keepBodyAs=", spec.KeepBodyAs, "default=", spec.KeepBodyDefault)
+	req, err := http.NewRequest(spec.Verb, u.pargs.Interpolate(uri), bytes.NewBuffer([]byte(u.pargs.Interpolate(spec.Body))))
 	//fmt.Println("L50: req=", req, " err=", err)
 	if err != nil {
 		u.perf.NumFail += 1
-		fmt.Fprintln(u.logFile, "FAIL: L74: id=", spec.Id, " message=", spec.Message, " error opening uri=", uri, " err=", err)
+		serr := fmt.Sprintln(u.logFile, "FAIL: L74: id=", spec.Id, " message=", spec.Message, " error opening uri=", uri, " err=", err)
+		fmt.Println(serr)
+		fmt.Fprintln(u.logFile, serr)
 		u.reqPending--
 		reqStat = false
 		return
+	}
+
+	// TODO: Ieterate over set headers
+	for key, val := range spec.Headers {
+		sval := u.pargs.Interpolate(val)
+		skey := u.pargs.Interpolate(key)
+		req.Header.Set(skey, sval)
+		fmt.Println("L96: header key=", key, " val=", val, " skey=", skey, " val=", sval)
+	}
+	if spec.KeepBodyAs > " " {
+		// modify save name to make it easier to use without
+		// having to match the case in interpolation
+		spec.KeepBodyAs = s.TrimPrefix(s.ToLower(spec.KeepBodyAs), " ")
 	}
 
 	req.Header.Set("Connection", "close")
@@ -90,11 +113,15 @@ func (u *MTReader) procLine(spec *TestSpec) {
 		u.perf.NumFail += 1
 		u.reqPending--
 		reqStat = false
+		if spec.KeepBodyAs > " " && spec.KeepBodyDefault > " " {
+			fmt.Println("L106: keep default as failure keepBodyAs=", spec.KeepBodyAs, " default=", spec.KeepBodyDefault)
+			u.pargs.NamedStr[spec.KeepBodyAs] = spec.KeepBodyDefault
+		}
 		return
 	}
 	defer resp.Body.Close()
 
-	//fmt.Println(" L68: reps=", resp, "err=", err)
+	//fmt.Println(" L68: reps=", resp, " status=", resp.StatusCode, "err=", err)
 	body, _ := ioutil.ReadAll(resp.Body)
 	bodyStr := string(body)
 	if resp.StatusCode != spec.Expected {
@@ -111,6 +138,15 @@ func (u *MTReader) procLine(spec *TestSpec) {
 			errMsg = fmt.Sprintln(" L107:failed rematch=", spec.Rematch)
 			reqStat = false
 		}
+	}
+
+	// If KeepAs is specified in the input spec then save it for
+	// latter interpolation.  If the call fails then save the default
+	// if specified.
+	if resp.StatusCode != spec.Expected && spec.KeepBodyDefault > " " {
+		u.pargs.NamedStr[spec.KeepBodyAs] = spec.KeepBodyDefault
+	} else {
+		u.pargs.NamedStr[spec.KeepBodyAs] = bodyStr
 	}
 
 	// Add Logic to check the RE Pattern
@@ -178,6 +214,7 @@ func main() {
 	outFiName := parms.Sval("out", DefOutFiName)
 
 	u := makeMTReader(outFiName)
+	u.pargs = parms
 	fmt.Fprintln(u.logFile, "GenericHTTPTestClient.go")
 	fmt.Println("TestCaseFiName=", inFiName, " baseURI=", BaseURI)
 	fmt.Println("OutFileName=", outFiName)
