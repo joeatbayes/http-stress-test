@@ -1,9 +1,8 @@
-# Test Google page contains expected text
-{  "id" : "0182-google-home-contains-search",   
+{  "id" : "002-google-auto-suggest-for-quant",   
    "verb" : "GET", 
-   "uri" : "https://google.com", 
+   "uri" : "https://www.google.com/complete/search?q=quant&cp=5&client=psy-ab&xssi=t&gs_ri=gws-wiz&hl=en&authuser=0", 
    "expected" : 200, 
-   "rematch" : ".*Search.*div.*Google", 
-   "message" :"Google home must contain 'search' followed by 'div' followed by 'Google'"
+   "rematch" : "quant.*eum.*physics", 
+   "message" :"Google auto suggest for quant"
 }
 #END
