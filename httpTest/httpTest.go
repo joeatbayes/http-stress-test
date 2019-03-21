@@ -68,10 +68,6 @@ func keepLines(s string, n int) string {
 	return strings.Replace(result, "\r", "", -1)
 }
 
-func interpolate_str(s string) string {
-	return s
-}
-
 func (u *MTReader) procLine(spec *TestSpec) {
 	u.reqPending += 1
 	u.perf.NumReq += 1
@@ -285,7 +281,7 @@ func (u *MTReader) processFile(inFiName string) {
 	}
 
 	u.logFile.Sync()
-	jutil.TimeTrackMin(u.logFile, start, "Finished Queing\n")
+	jutil.TimeTrackMin(u.logFile, start, "Finished Queing "+inFiName+"\n")
 
 }
 
@@ -294,14 +290,14 @@ func (u *MTReader) processFile(inFiName string) {
 func (u *MTReader) processDir(inFiName string) {
 	fmt.Println("L295: processDir ", inFiName)
 	globPath := inFiName + "/*" + u.processExt
-	fmt.Println("L297: globPath=", globPath)
+	//fmt.Println("L297: globPath=", globPath)
 	files, err := filepath.Glob(globPath)
 	if err != nil {
 		fmt.Println("L289: ERROR processsing dir", inFiName, " err=", err)
 	} else {
-		fmt.Println("L300: files=", files)
+		//fmt.Println("L300: files=", files)
 		for _, fiPath := range files {
-			fmt.Println("L301:  fiPath=", fiPath)
+			//fmt.Println("L301:  fiPath=", fiPath)
 			u.processFile(fiPath)
 		}
 	}
@@ -327,7 +323,6 @@ func main() {
 	const procs = 2
 	const DefMaxWorkerThread = 20 //5 //150 //5 //15 // 50 // 350
 	const MaxQueueSize = 3000
-	const BaseURI = "http://127.0.0.1:9601/"
 	const DefInFiName = "data/sample.txt"
 	const DefOutFiName = "httpTest.log.txt"
 	parms := jutil.ParseCommandLine(os.Args)
@@ -344,10 +339,8 @@ func main() {
 	u.processExt = parms.Sval("ext", "txt")
 
 	fmt.Fprintln(u.logFile, "GenericHTTPTestClient.go")
-	fmt.Println("InPathStr=", inPathStr, " baseURI=", BaseURI)
 	fmt.Println("OutFileName=", outFiName)
 	fmt.Println("MaxWorkerThread=", MaxWorkerThread)
-	fmt.Println("MaxQueueSize=", MaxQueueSize)
 
 	start := time.Now().UTC()
 	u.pargs = parms
@@ -364,7 +357,6 @@ func main() {
 				if more {
 					u.procLine(&spec)
 					//fmt.Println("L128 spec=", spec)
-
 				} else {
 					u.isDone <- true
 					return
