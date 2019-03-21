@@ -1,0 +1,9 @@
+# Test Google page contains expected text
+{  "id" : "0182-google-home-contains-search",   
+   "verb" : "GET", 
+   "uri" : "https://google.com", 
+   "expected" : 200, 
+   "rematch" : ".*Search.*div.*Google", 
+   "message" :"Google home must contain 'search' followed by 'div' followed by 'Google'"
+}
+#END

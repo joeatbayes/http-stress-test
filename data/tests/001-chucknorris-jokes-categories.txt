@@ -1,0 +1,9 @@
+# Login and get a session token
+{  "id" : "018-login",   
+   "verb" : "GET", 
+   "uri" : "https://api.chucknorris.io/jokes/categories",
+   "expected" : 200, 
+   "rematch" : ".*science.*sport.*political"
+}
+#END
+#WAIT

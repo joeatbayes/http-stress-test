@@ -50,13 +50,28 @@ httpTest  -in=data/sample-1.txt -out=test1.log.txt  -MaxThread=100 -Environment=
 ​    
 
 > > - Runs the test with [data/sample-1.txt](data/sample-1.txt) as the input file.    
+> >
 > > - Writing basic results to test1.log.txt 
+> >
 > > - Runs with 100 client threads.
+> >
 > > - **Parameters**
+> >
 > > - **-in** = the name of the file containing test specifications.
+> >
 > > - **-out** = the name of the file to write test results and timing to.
+> >
 > > - **-MaxThread** = maximum number of concurrent requests submitted from client to servers.
+> >
 > > - **-Environment** = Arbitrarily named command parameter.   These can be used and interpolated into the URI,  header keys, header values and body string.   Essentially any named value can be added in the same fashion eg:  -mykey=001 where mykey can be any set of alphanumeric characters and value is any valid as a command parameter in the os shell.
+> >
+> >   ```
+> >   httpTest  -in=data/tests -out=test2.log.txt -MaxThread=5 -Env=TST
+> >   
+> >   # Run all tests in the data/tests directory in alpha order.
+> >   ```
+> >
+> >   
 
 ## File Input Format
 
@@ -166,7 +181,7 @@ numReq= 4 elapSec= 0.5245668 numSuc= 3 numFail= 1 failRate= 0 reqPerSec= 7.62533
 
 ## Advanced Usage 
 
-### Example with Custom Interpolated Headers
+### Example with Interpolation & Custom  Headers
 
 Get A session token from one REST call and pass it as part of custom header in the next test case.
 

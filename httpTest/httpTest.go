@@ -283,7 +283,7 @@ func (u *MTReader) processFile(inFiName string) {
 			b.Write([]byte(aline))
 		}
 	}
-	close(u.linesChan)
+
 	u.logFile.Sync()
 	jutil.TimeTrackMin(u.logFile, start, "Finished Queing\n")
 
@@ -292,11 +292,16 @@ func (u *MTReader) processFile(inFiName string) {
 // Process a directory processing any files that match
 // -ext settings.
 func (u *MTReader) processDir(inFiName string) {
-	files, err := filepath.Glob("*." + u.processExt)
+	fmt.Println("L295: processDir ", inFiName)
+	globPath := inFiName + "/*" + u.processExt
+	fmt.Println("L297: globPath=", globPath)
+	files, err := filepath.Glob(globPath)
 	if err != nil {
 		fmt.Println("L289: ERROR processsing dir", inFiName, " err=", err)
 	} else {
+		fmt.Println("L300: files=", files)
 		for _, fiPath := range files {
+			fmt.Println("L301:  fiPath=", fiPath)
 			u.processFile(fiPath)
 		}
 	}
@@ -336,7 +341,7 @@ func main() {
 	outFiName := parms.Sval("out", DefOutFiName)
 	u := makeMTReader(outFiName)
 	u.inPaths = strings.Split(inPathStr, ";")
-	u.processExt = parms.Sval("txt", DefOutFiName)
+	u.processExt = parms.Sval("ext", "txt")
 
 	fmt.Fprintln(u.logFile, "GenericHTTPTestClient.go")
 	fmt.Println("InPathStr=", inPathStr, " baseURI=", BaseURI)
@@ -373,7 +378,8 @@ func main() {
 		path = strings.TrimSpace(path)
 		u.processPath(path)
 	}
-
+	close(u.linesChan)
+	time.Sleep(1500)
 	<-u.isDone // wait until queue has been marked as finished.
 	jutil.TimeTrackMin(u.logFile, start, "Finished all test records\n")
 	for u.reqPending > 0 {
