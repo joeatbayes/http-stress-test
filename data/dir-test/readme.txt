@@ -1,0 +1,1 @@
+basic tests showing access to some REST services

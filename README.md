@@ -2,7 +2,7 @@
 HTTP Test case runner and Stress Test Utility
 
 *  Ability to run from 1 to hundreds of concurrent requests across a wide variety complex use cases.
-* Uses easily edited text format based on JSON to specify URI, METHOD, BODY and response matching.    [sample test script](data/sample-1.txt)
+* Uses easily edited text format based on JSON to specify URI, METHOD, BODY and response matching.    [sample test script](data/sample.tst)
 * Fully supports parallel execution with semantics to force all operations to finish before it starts the next stage of testing which can be required when some tests must complete before others can be started. 
 * Will show the test ID and status for every test ran making it easy to integrate into a CICD pipeline.
 * Provides RE matching of HTTP response and body to validate good responses.
@@ -35,7 +35,7 @@ HINT: set GOTPATH= your current working directory.  Or set it to your desired ta
 git clone https://github.com/joeatbayes/http-stress-test httpTest
 ```
 
-You could also just save the [sample script](https://raw.githubusercontent.com/joeatbayes/http-stress-test/master/data/sample-1.txt) using your browser or curl and edit it to use the executable built above. 
+You could also just save the [sample script](https://raw.githubusercontent.com/joeatbayes/http-stress-test/master/data/sample-1.tst) using your browser or curl and edit it to use the executable built above. 
 
 ## Assumptions
 
@@ -44,12 +44,12 @@ You could also just save the [sample script](https://raw.githubusercontent.com/j
 ## Command Line API
 
 ```
-httpTest  -in=data/sample-1.txt -out=test1.log.txt  -MaxThread=100 -Environment=TST
+httpTest  -in=data/sample.tst -out=test1.log.txt  -MaxThread=100 -Environment=TST
 ```
 
 ​    
 
-> > - Runs the test with [data/sample-1.txt](data/sample-1.txt) as the input file.    
+> > - Runs the test with [data/sample-1.txt](data/sample-1.tst) as the input file.    
 > >
 > > - Writing basic results to test1.log.txt 
 > >
@@ -65,13 +65,19 @@ httpTest  -in=data/sample-1.txt -out=test1.log.txt  -MaxThread=100 -Environment=
 > >
 > > - **-Environment** = Arbitrarily named command parameter.   These can be used and interpolated into the URI,  header keys, header values and body string.   Essentially any named value can be added in the same fashion eg:  -mykey=001 where mykey can be any set of alphanumeric characters and value is any valid as a command parameter in the os shell.
 > >
-> >   ```
-> >   httpTest  -in=data/tests -out=test2.log.txt -MaxThread=5 -Env=TST
-> >   
-> >   # Run all tests in the data/tests directory in alpha order.
-> >   ```
+#### Reading a Directory full of tests
 > >
-> >   
+> >```
+> >httpTest  -in=data/dir-test -ext=tst -out=test2.log.txt -MaxThread=15 -Env=JOE1
+> >
+> ># Run all tests in the data/tests directory in alpha order.
+> >```
+> >
+> >By specifying a directory name instead of a file in the -in parameter the system will read all files with an extension matching that specified by -ext.   In this instant -in=data/dir-test and -ext=tst will cause the system to find all files relative to the current working directory in data/dir-test that have an extension of .tst.    The list of files should be similar to that returned by ls -l data/dir-test/*tst.   The files are  processed in sorted order so it is easy to control test execution order by naming the file with a prefix such as 000-testx1.tst 001-testzbc.tst  Since 000 sorts before 001 it will be executed first. similar to the list returns 
+> >
+> >#### Reading Multiple Files full of tests
+> >
+> >TODO: Fill this in
 
 ## File Input Format
 
@@ -115,7 +121,7 @@ httpTest  -in=data/sample-1.txt -out=test1.log.txt  -MaxThread=100 -Environment=
 
 - Each JSON string is terminated by a #END starting a otherwise blank line. 
 
-- **[Sample-1](data/sample-1.txt):**
+- **[Sample](data/sample.tst):**
 
   Test ID = ID to print upon failure
   HTTP Verb = HTTP Verb to send to the server
@@ -167,7 +173,7 @@ numReq= 4 elapSec= 0.5245668 numSuc= 3 numFail= 1 failRate= 0 reqPerSec= 7.62533
 
 ## Important Files
 
-- [data/sample-1.txt](data/sample-1.txt) - Sample input data to drive some simple tests
+- [data/sample.tst](data/sample.tst) - Sample input data to drive some simple tests
 
 - [actions.md](actions.md) - list of feature enhancements under consideration.  Roughly listed in order.
 
@@ -186,7 +192,7 @@ numReq= 4 elapSec= 0.5245668 numSuc= 3 numFail= 1 failRate= 0 reqPerSec= 7.62533
 Get A session token from one REST call and pass it as part of custom header in the next test case.
 
 ```
-httpTest  -in=data/002-sample-login-token-passed-as-header.txt -out=test1.log.txt  -MaxThread=10 -userid=testuser -passwd=tiger1928A2 -ENV=TST  
+httpTest  -in=data/login/002-sample-login-token-passed-as-header -out=test1.log.txt  -MaxThread=10 -userid=testuser -passwd=tiger1928A2 -ENV=TST  
 
 # Demonstrate passing the userid and password in as command line parameters
 # and saving the result as a named value to be used as token in subsequent

@@ -281,7 +281,7 @@ func (u *MTReader) processFile(inFiName string) {
 	}
 
 	u.logFile.Sync()
-	jutil.TimeTrackMin(u.logFile, start, "Finished Queing "+inFiName+"\n")
+	jutil.TimeTrack(u.logFile, start, "Finished Queing "+inFiName+"\n")
 
 }
 
@@ -320,10 +320,11 @@ func (u *MTReader) processPath(inFiName string) {
 }
 
 func main() {
+	startms := jutil.Nowms()
 	const procs = 2
 	const DefMaxWorkerThread = 20 //5 //150 //5 //15 // 50 // 350
 	const MaxQueueSize = 3000
-	const DefInFiName = "data/sample.txt"
+	const DefInFiName = "data/sample.tst"
 	const DefOutFiName = "httpTest.log.txt"
 	parms := jutil.ParseCommandLine(os.Args)
 	if parms.Exists("help") {
@@ -336,7 +337,7 @@ func main() {
 	outFiName := parms.Sval("out", DefOutFiName)
 	u := makeMTReader(outFiName)
 	u.inPaths = strings.Split(inPathStr, ";")
-	u.processExt = parms.Sval("ext", "txt")
+	u.processExt = parms.Sval("ext", "tst")
 
 	fmt.Fprintln(u.logFile, "GenericHTTPTestClient.go")
 	fmt.Println("OutFileName=", outFiName)
@@ -371,12 +372,14 @@ func main() {
 		u.processPath(path)
 	}
 	close(u.linesChan)
+	jutil.Elap("L374: finished processing all input", startms, jutil.Nowms())
 	time.Sleep(1500)
 	<-u.isDone // wait until queue has been marked as finished.
-	jutil.TimeTrackMin(u.logFile, start, "Finished all test records\n")
+	jutil.TimeTrack(u.logFile, start, "Finished Read test records\n")
 	for u.reqPending > 0 {
 		time.Sleep(1500)
 	}
+	jutil.Elap("L382: Queue is empty", startms, jutil.Nowms())
 	u.perf.PrintStat(u.logFile)
 	u.logFile.Sync()
 	defer u.logFile.Close()
