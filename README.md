@@ -8,7 +8,7 @@ HTTP Test case runner and Stress Test Utility
 * Provides RE matching of HTTP response and body to validate good responses.
 * Provides RE no match to check proper filtering. 
 
-[httpTest](src/httpTest.go) provides a data driven, multi threaded test client able to support running at many threads for a while then waiting for all concurrent threads to finish before starting the next test.  This provides basic support for read after write tests.   It also provides easily parsed output that can be used to feed test results into downstream tools.  
+[httpTest](httpTest/httpTest.go) provides a data driven, multi threaded test client able to support running at many threads for a while then waiting for all concurrent threads to finish before starting the next test.  This provides basic support for read after write tests.   It also provides easily parsed output that can be used to feed test results into downstream tools.  
 
 [TOC]
 
