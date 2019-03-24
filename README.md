@@ -53,10 +53,6 @@ git clone https://github.com/joeatbayes/http-stress-test httpTest
 
 You could also just save the [sample script](https://raw.githubusercontent.com/joeatbayes/http-stress-test/master/data/sample-1.tst) using your browser or curl and edit it to use the executable built above. 
 
-## Assumptions
-
-- Unless specified otherwise assumes all requests can be completed in any order which may in fact happen since they are ran in a multi threaded fashion.     The #WAIT directive can be used to force prior commands to be completed before subsequent test  cases are executed.
-
 ## Command Line API
 
 ```
@@ -85,8 +81,11 @@ httpTest  -in=data/sample.tst -out=test1.log.txt  -MaxThread=100 -Environment=TS
 > >
 > >By specifying a directory name instead of a file in the -in parameter the system will read all files with an extension matching that specified by -ext.   In this instant -in=data/dir-test and -ext=tst will cause the system to find all files relative to the current working directory in data/dir-test that have an extension of .tst.    The list of files should be similar to that returned by ls -l data/dir-test/*tst.   The files are  processed in sorted order so it is easy to control test execution order by naming the file with a prefix such as 000-testx1.tst 001-testzbc.tst  Since 000 sorts before 001 it will be executed first. similar to the list returns 
 > >
-> >#### 
+> >#### Assumptions
 > >
+> >- Unless specified otherwise assumes all requests can be completed in any order which may in fact happen since they are ran in a multi threaded fashion.     The #WAIT directive can be used to force prior commands to be completed before subsequent test  cases are executed.
+> >
+> > 
 
 ## File Input Format
 
