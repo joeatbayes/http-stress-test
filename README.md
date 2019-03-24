@@ -407,6 +407,18 @@ This will build a new executable and place it at the location specified in the -
 - [Healthcare provider Search](https://bitbucket.org/joexdobs/healthcare-provider-search)  Search UI that provides physician locator functionality.   Scripts to parse and load with over 1.2 million records from CMS.    Allows geo-proximity filtering,  zip to city resolution, etc.   Based on elastic search with node.js middle tier server.  Demonstrates very fast RIA JavaScript which allows hundreds of records faster that many sites render a one.   Take a close look if you want to understand high performance JavaScript.
 - [CSV Tables in Browser](https://github.com/joeatbayes/CSVTablesInBrowser) Render CSV files in a browser automatically with little to know code.  Renders them fast and nice looking with automatically repeated headers.   Supports sorting,   Custom formatting by column and can even allow script callback to allow custom data generation for some fields.    Can dramatically reduce work to render large sets of columnar data. 
 
+## Contributing & Contact
+
+* We will accept pull requests from forked repositories with new features after we have reviewed and have determined the implementation and design is good.  We will also provide feedback on changes needed before we can accept a pull request.
+
+* If you would like us to add a feature then feel free to [submit a new issue](https://github.com/joeatbayes/http-stress-test/issues)  we will consider every request and add those we agree with when we have time and energy to add.
+
+* If you are a commercial user and desire support or have an urgent need to add a new feature then you can donate money via paypal.
+* You can contact me by [submitting a new issue](https://github.com/joeatbayes/http-stress-test/issues) or via [linked in](https://www.linkedin.com/in/joe-ellsworth-68222/)
+
+Thanks Joe Ellsworth
+
 ## License:
 
 Copyright 2018 Joseph Ellsworth  [MIT License](https://opensource.org/licenses/MIT) 
+
