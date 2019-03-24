@@ -7,9 +7,14 @@ HTTP Test case runner and Stress Test Utility.  [httpTest](httpTest/httpTest.go)
   *  Interpolation for custom URI and HTTP headers
   *  Custom interpolation for URI & OIDC to allow login & session management.
   *  Save results from prior tests that can be interpolated into subsequent tests.
+  *  Support complex tests with millions of tests cases.
+  *  Process multiple files.
+  *  Process multiple directories.
 
-*  Ability to run from 1 to hundreds of concurrent requests across a wide variety complex use cases.
+*  Load Testing 
 
+   *  Run from 1 to hundreds of concurrent requests across a wide variety complex use cases.
+   *  Concurrency control using -MaxThreads supports testing servers under variable levels of load.
    *  Maximum requests per second rate limiting to control load on server.
    *  Parallel execution with #WAIT semantics to force all operations to finish before next stage of testing.  Supports testing when some tests must complete before others can be started. 
 
@@ -19,7 +24,9 @@ HTTP Test case runner and Stress Test Utility.  [httpTest](httpTest/httpTest.go)
    *  Regex must not match to check proper filtering. 
    *  Response code checking 
 
-*  Output shows test ID and status for every test ran making it easy to integrate into a CICD pipeline. *Easily parsed output to allow easy integration with CICD pipelines.*
+*   *Easily parsed output to allow easy integration with CICD pipelines.*
+
+   *  Output shows test ID and status for every test ran making it easy to integrate into a CICD pipeline.
 
    
 
