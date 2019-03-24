@@ -409,7 +409,8 @@ This will build a new executable and place it at the location specified in the -
 
 ## Contributing & Contact
 
-* We will accept pull requests from forked repositories with new features after we have reviewed and have determined the implementation and design is good.  We will also provide feedback on changes needed before we can accept a pull request.
+* We will accept pull requests from forked repositories with new features after we have reviewed and have determined the implementation and design is good.  We will also provide feedback on changes needed before we can accept a pull request.  
+* See [actions.md](actions.md) for a list of features we are considering for future implementation.
 
 * If you would like us to add a feature then feel free to [submit a new issue](https://github.com/joeatbayes/http-stress-test/issues)  we will consider every request and add those we agree with when we have time and energy to add.
 
@@ -421,4 +422,3 @@ Thanks Joe Ellsworth
 ## License:
 
 Copyright 2018 Joseph Ellsworth  [MIT License](https://opensource.org/licenses/MIT) 
-
