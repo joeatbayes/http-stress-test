@@ -22,27 +22,45 @@ import (
 )
 
 type MTReader struct {
-	perf       *jutil.PerfMeasure
-	reqPending int
-	logFile    *os.File
-	pargs      *jutil.ParsedCommandArgs
-	inPaths    []string
-	processExt string // file name extension to use when processing directories.
-	linesChan  chan TestSpec
-	isDone     chan bool
+	perf         *jutil.PerfMeasure
+	reqPending   int
+	logFile      *os.File
+	pargs        *jutil.ParsedCommandArgs
+	inPaths      []string
+	processExt   string // file name extension to use when processing directories.
+	linesChan    chan TestSpec
+	isDone       chan bool
+	maxRecPerSec float64
+	reqMade      int
+	start        float64
 }
 
 func makeMTReader(outFiName string) *MTReader {
 	r := MTReader{}
 	r.perf = jutil.MakePerfMeasure(25000)
-
 	logFiName := outFiName
 	var logFile, sferr = os.Create(logFiName)
 	if sferr != nil {
 		fmt.Println("Can not open log file ", logFiName, " sferr=", sferr)
 	}
 	r.logFile = logFile
+	r.reqMade = 0
+	r.start = jutil.Nowms()
+	r.maxRecPerSec = -1.0
 	return &r
+}
+
+func (r *MTReader) elapSec() float64 {
+	return jutil.CalcElapSec(r.start)
+}
+
+func (r *MTReader) requestsPerSec() float64 {
+	elap := r.elapSec()
+	if elap == 0.0 {
+		return 0.0
+	} else {
+		return float64(r.reqMade) / elap
+	}
 }
 
 func (r *MTReader) done() {
@@ -71,6 +89,18 @@ func keepLines(s string, n int) string {
 func (u *MTReader) procLine(spec *TestSpec) {
 	u.reqPending += 1
 	u.perf.NumReq += 1
+	fmt.Println("maxRecPerSec=", u.maxRecPerSec, " requestsPerSec=", u.requestsPerSec())
+	for u.maxRecPerSec > 0 && u.requestsPerSec() > u.maxRecPerSec && u.reqMade > 0 {
+		// slow down to comply with maxReqPerSec directive
+		// whenever maxReqPerSec has been specified as a
+		// positive number.
+		//fmt.Println("maxRecPerSec=", u.maxRecPerSec, " requestsPerSec=", u.requestsPerSec())
+		time.Sleep(500.0)
+		// TODO: Compute exact time we need to sleep to reach
+		// the RPS and then delay by that amount rather than
+		// polling.
+	}
+	u.reqMade += 1
 	startms := jutil.Nowms()
 	//fmt.Println("L45: spec=", spec)
 	//fmt.Println("L49: spec.Rematch=", spec.Rematch)
@@ -179,7 +209,7 @@ func (u *MTReader) procLine(spec *TestSpec) {
 	elapms := endms - startms
 	if reqStat == true {
 		u.perf.NumSuc += 1
-		tbuff := fmt.Sprintf("SUCESS: L125: elap=%4.3fms\t id=%s \tmessage=%s", elapms, spec.Id, spec.Message)
+		tbuff := fmt.Sprintf("SUCESS: L125: elap=%4.3fms\trps=%4.1f\tid=%s\tmessage=%s", elapms, u.requestsPerSec(), spec.Id, spec.Message)
 		fmt.Println(tbuff)
 		fmt.Fprintln(u.logFile, tbuff)
 	} else {
@@ -216,10 +246,17 @@ func PrintHelp() {
 	   -ext = file extension to include for processing 
 	      when processing a full directory.  Defaults to
 		  txt.
-	
+		
+	   -mrps = Maximum number of requests to make
+	      per second.   This is useful when wanting to stress
+		  a server to a specific level regaurdless of the 
+		  number of threads.  Defaults to no limit when 
+		  not set. 
+		
 	   -env =  variable used for interpolation.  An arbitrary
 	      set of variables can be defined in this fashion 
 		  and will be available for use with interpolation
+		
        -company = variable used for interpolation
 	-`)
 }
@@ -338,10 +375,11 @@ func main() {
 	u := makeMTReader(outFiName)
 	u.inPaths = strings.Split(inPathStr, ";")
 	u.processExt = parms.Sval("ext", "tst")
-
+	u.maxRecPerSec = parms.F64val("mrps", float64(-1.0)) // maxrecpersec
 	fmt.Fprintln(u.logFile, "GenericHTTPTestClient.go")
 	fmt.Println("OutFileName=", outFiName)
 	fmt.Println("MaxWorkerThread=", MaxWorkerThread)
+	fmt.Println("u.maxRecPerSec=", u.maxRecPerSec)
 
 	start := time.Now().UTC()
 	u.pargs = parms

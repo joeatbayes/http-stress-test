@@ -2,11 +2,12 @@
 HTTP Test case runner and Stress Test Utility
 
 *  Ability to run from 1 to hundreds of concurrent requests across a wide variety complex use cases.
-* Uses easily edited text format based on JSON to specify URI, METHOD, BODY and response matching.    [sample test script](data/sample.tst)
-* Fully supports parallel execution with semantics to force all operations to finish before it starts the next stage of testing which can be required when some tests must complete before others can be started. 
-* Will show the test ID and status for every test ran making it easy to integrate into a CICD pipeline.
-* Provides RE matching of HTTP response and body to validate good responses.
-* Provides RE no match to check proper filtering. 
+*  Uses easily edited text format based on JSON to specify URI, METHOD, BODY and response matching.    [sample test script](data/sample.tst)
+*  Fully supports parallel execution with semantics to force all operations to finish before it starts the next stage of testing which can be required when some tests must complete before others can be started. 
+*  Will show the test ID and status for every test ran making it easy to integrate into a CICD pipeline.
+*  Provides RE matching of HTTP response and body to validate good responses.
+*  Provides RE no match to check proper filtering. 
+*  Provides Max Requests Per second delay to control load on server.
 
 [httpTest](httpTest/httpTest.go) provides a data driven, multi threaded test client able to support running at many threads for a while then waiting for all concurrent threads to finish before starting the next test.  This provides basic support for read after write tests.   It also provides easily parsed output that can be used to feed test results into downstream tools.  
 
@@ -186,6 +187,20 @@ numReq= 4 elapSec= 0.5245668 numSuc= 3 numFail= 1 failRate= 0 reqPerSec= 7.62533
   [goutil github repository](https://github.com/joeatbayes/goutil)  [httpTest.go](httpTest.go/httpTest.go) requires code from goutil that will be automatically downloaded when building this too.
 
 ## Advanced Usage 
+
+### Limiting Server load or Limiting Requests Per Second
+
+```
+httpTest  -in=data/dir-test -ext=tst  -mrps=0.5
+
+# Adding the -mrps value will cause the system to delay processing
+# to each request to slow the system down by enough to limit demand 
+# on the server so it only places a limited load on the server.   
+# A mrps value of 0.5 submits only 1/2 request per second or 1 
+# request every 2 seconds.
+```
+
+
 
 ### Example with Interpolation & Custom  Headers
 
