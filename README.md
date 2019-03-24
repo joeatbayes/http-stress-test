@@ -7,7 +7,7 @@ HTTP Test case runner and Stress Test Utility
 *  Will show the test ID and status for every test ran making it easy to integrate into a CICD pipeline.
 *  Provides RE matching of HTTP response and body to validate good responses.
 *  Provides RE no match to check proper filtering. 
-*  Provides Max Requests Per second delay to control load on server.
+*  Provides maximum requests per second rate limiting to control load on server.
 
 [httpTest](httpTest/httpTest.go) provides a data driven, multi threaded test client able to support running at many threads for a while then waiting for all concurrent threads to finish before starting the next test.  This provides basic support for read after write tests.   It also provides easily parsed output that can be used to feed test results into downstream tools.  
 
@@ -40,7 +40,7 @@ You could also just save the [sample script](https://raw.githubusercontent.com/j
 
 ## Assumptions
 
-- Unless specified otherwise assumes all requests can be completed in any order which may in fact happen since they are ran in a multi threaded fashion.     
+- Unless specified otherwise assumes all requests can be completed in any order which may in fact happen since they are ran in a multi threaded fashion.     The #WAIT directive can be used to force prior commands to be completed before subsequent test  cases are executed.
 
 ## Command Line API
 
@@ -51,34 +51,27 @@ httpTest  -in=data/sample.tst -out=test1.log.txt  -MaxThread=100 -Environment=TS
 ​    
 
 > > - Runs the test with [data/sample-1.txt](data/sample-1.tst) as the input file.    
-> >
 > > - Writing basic results to test1.log.txt 
-> >
 > > - Runs with 100 client threads.
-> >
 > > - **Parameters**
-> >
 > > - **-in** = the name of the file containing test specifications.
-> >
 > > - **-out** = the name of the file to write test results and timing to.
-> >
-> > - **-MaxThread** = maximum number of concurrent requests submitted from client to servers.
-> >
+> > - **-MaxThread** = maximum number of concurrent requests submitted from client to servers.  Defaults to 20 threads if not specified.
+> > - **-mrps** =  Maximum Requests Per Second.  Causes the system to delay processing of test cases by enough to limit load on the receiving server.    A mrps value of 0.5 submits only 1/2 request per second or 1 request every 2 seconds.   Defaults to no limit if not specified.
 > > - **-Environment** = Arbitrarily named command parameter.   These can be used and interpolated into the URI,  header keys, header values and body string.   Essentially any named value can be added in the same fashion eg:  -mykey=001 where mykey can be any set of alphanumeric characters and value is any valid as a command parameter in the os shell.
 > >
 #### Reading a Directory full of tests
 > >
 > >```
-> >httpTest  -in=data/dir-test -ext=tst -out=test2.log.txt -MaxThread=15 -Env=JOE1
+> >httpTest  -in=data/dir-test -Env=JOE1
 > >
 > ># Run all tests in the data/tests directory in alpha order.
 > >```
 > >
 > >By specifying a directory name instead of a file in the -in parameter the system will read all files with an extension matching that specified by -ext.   In this instant -in=data/dir-test and -ext=tst will cause the system to find all files relative to the current working directory in data/dir-test that have an extension of .tst.    The list of files should be similar to that returned by ls -l data/dir-test/*tst.   The files are  processed in sorted order so it is easy to control test execution order by naming the file with a prefix such as 000-testx1.tst 001-testzbc.tst  Since 000 sorts before 001 it will be executed first. similar to the list returns 
 > >
-> >#### Reading Multiple Files full of tests
+> >#### 
 > >
-> >TODO: Fill this in
 
 ## File Input Format
 
@@ -200,14 +193,36 @@ httpTest  -in=data/dir-test -ext=tst  -mrps=0.5
 # request every 2 seconds.
 ```
 
+### Reading Multiple Files full of tests
+>
+> Multiple files or directories can be processed by separating the file names specified in the -in parameter with ";".    Items will be processed in the order specified but due to the multi-threaded nature of running tests it is possible that tests from multiple directories or files could be completed out of order especially when a slow service is mixed into test cases with faster tests.  The #WAIT directive can be used to force prior tests to finish.
+>
+> ##### Reading multiple files 
+>
+> ```
+> httpTest  -in=data/sample.tst;data/dir-test/002-test-google.tst 
+> ```
+>
+> #####  Reading multiple directories
+>
+> ```
+> httpTest  -in=data/dir-test;data/airsolarwater/dem;  -Env=JOE1
+> ```
+>
+> ##### Reading a set of multiple files combined with directories.
 
+> ```
+> httpTest  -in=data/sample.txt;data/dir-test
+> ```
+>
+> 
 
 ### Example with Interpolation & Custom  Headers
 
 Get A session token from one REST call and pass it as part of custom header in the next test case.
 
 ```
-httpTest  -in=data/login/002-sample-login-token-passed-as-header -out=test1.log.txt  -MaxThread=10 -userid=testuser -passwd=tiger1928A2 -ENV=TST  
+httpTest  -in=data/login-with-token/002-sample-login-token-passed-as-header.tst -userid=testuser -passwd=tiger1928A2 -ENV=TST  
 
 # Demonstrate passing the userid and password in as command line parameters
 # and saving the result as a named value to be used as token in subsequent
