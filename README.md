@@ -1,19 +1,27 @@
 # http stress tester
-HTTP Test case runner and Stress Test Utility
+HTTP Test case runner and Stress Test Utility.  [httpTest](httpTest/httpTest.go) provides a data driven, multi threaded test client able to support running at many threads for a while then waiting for all concurrent threads to finish before starting the next test.  This provides basic support for read after write tests.   It also provides easily parsed output that can be used to feed test results into downstream tools.  
+
+* Easily edited text format based on JSON to specify URI, METHOD, BODY and response matching.    [sample test script](data/sample.tst)
+
+  *  Customize tests with Interpolation from named values on command line.
+  *  Interpolation for custom URI and HTTP headers
+  *  Custom interpolation for URI & OIDC to allow login & session management.
+  *  Save results from prior tests that can be interpolated into subsequent tests.
 
 *  Ability to run from 1 to hundreds of concurrent requests across a wide variety complex use cases.
-*  Uses easily edited text format based on JSON to specify URI, METHOD, BODY and response matching.    [sample test script](data/sample.tst)
-*  Fully supports parallel execution with semantics to force all operations to finish before it starts the next stage of testing which can be required when some tests must complete before others can be started. 
-*  Will show the test ID and status for every test ran making it easy to integrate into a CICD pipeline.
-*  Provides RE matching of HTTP response and body to validate good responses.
-*  Provides RE no match to check proper filtering. 
-*  Provides maximum requests per second rate limiting to control load on server.
 
-[httpTest](httpTest/httpTest.go) provides a data driven, multi threaded test client able to support running at many threads for a while then waiting for all concurrent threads to finish before starting the next test.  This provides basic support for read after write tests.   It also provides easily parsed output that can be used to feed test results into downstream tools.  
+   *  Maximum requests per second rate limiting to control load on server.
+   *  Parallel execution with #WAIT semantics to force all operations to finish before next stage of testing.  Supports testing when some tests must complete before others can be started. 
 
-[TOC]
+*  Success Checking
 
+   *  Regex matching of HTTP response and body to validate good responses.
+   *  Regex must not match to check proper filtering. 
+   *  Response code checking 
 
+*  Output shows test ID and status for every test ran making it easy to integrate into a CICD pipeline. *Easily parsed output to allow easy integration with CICD pipelines.*
+
+   
 
 ## Local Build / Setup
 
@@ -209,7 +217,7 @@ httpTest  -in=data/dir-test -ext=tst  -mrps=0.5
 > httpTest  -in=data/dir-test;data/airsolarwater/dem;  -Env=JOE1
 > ```
 >
-> ##### Reading a set of multiple files combined with directories.
+> ##### Reading combined set of multiple files and directories.
 
 > ```
 > httpTest  -in=data/sample.txt;data/dir-test
