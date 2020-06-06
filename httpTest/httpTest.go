@@ -410,6 +410,7 @@ func main() {
 					//fmt.Println("L128 spec=", spec)
 				} else {
 					u.isDone <- true
+					fmt.Println("L413: isDone()")
 					return
 				}
 			}
@@ -421,15 +422,25 @@ func main() {
 		path = strings.TrimSpace(path)
 		u.processPath(path)
 	}
+	fmt.Println("L425: All files read")
 	close(u.linesChan)
 	jutil.Elap("L374: finished processing all input", startms, jutil.Nowms())
 	time.Sleep(1500)
 	<-u.isDone // wait until queue has been marked as finished.
 	jutil.TimeTrack(u.logFile, start, "Finished Read test records\n")
+    finishWaitStart := jutil.Nowms()
 	for u.reqPending > 0 {
 		time.Sleep(1500)
+        fmt.Println("L434: Finished wait u.reqPending=", u.reqPending)
+        jutil.Elap("L435: finish wait for", finishWaitStart, jutil.Nowms())
+        if (jutil.Nowms() - finishWaitStart > 60000) {
+            fmt.Println("L436: abort waited to long")
+            break
+        }
 	}
-	jutil.Elap("L382: Queue is empty", startms, jutil.Nowms())
+	if u.reqPending <= 0 {
+	  jutil.Elap("L382: Queue is empty", startms, jutil.Nowms())
+    }
 	u.perf.PrintStat(u.logFile)
 	u.logFile.Sync()
 	defer u.logFile.Close()
