@@ -230,7 +230,7 @@ func (u *MTReader) procLine(spec *TestSpec) {
 		fmt.Printf(tbuff)
 	}
 	u.reqPending--
-	time.Sleep(10) 
+	//time.Sleep(10) 
     
 }
 
