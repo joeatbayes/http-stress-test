@@ -144,7 +144,7 @@ func (u *MTReader) procLine(spec *TestSpec) {
 		}
 	}
 	req.Header.Set("Connection", "close")
-	req.Close = true
+	//req.Close = true // When this is true it prevents http from using keep-alive.
 	resp, err := hc.Do(req)
 	//fmt.Println("L146: reps=", resp, "err=", err)
 	if err != nil {
