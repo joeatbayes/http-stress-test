@@ -170,6 +170,8 @@ func (u *MTReader) procLine(spec *TestSpec) {
 		errMsg = fmt.Sprintln("\tL:97 Expected StatusCode=", spec.Expected, " got=", resp.StatusCode)
 		reqStat = false
 	}
+	resp.Body.Close()
+
 
 	//fmt.Println("L173: bodyStr=", bodyStr)
 	// Add Logic to check the RE Pattern
@@ -182,8 +184,7 @@ func (u *MTReader) procLine(spec *TestSpec) {
 			reqStat = false
 		}
 	}
-	defer resp.Body.Close()
-
+	
 	// If KeepAs is specified in the input spec then save it for
 	// latter interpolation.  If the call fails then save the default
 	// if specified.
