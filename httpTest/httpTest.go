@@ -143,7 +143,7 @@ func (u *MTReader) procLine(spec *TestSpec) {
 			spec.KeepBodyAs = s.TrimPrefix(s.ToLower(spec.KeepBodyAs), " ")
 		}
 	}
-	req.Header.Set("Connection", "close")
+	req.Header.Set("Connection", "keep-alive") // use "close" when you want to disable keep alive
 	//req.Close = true // When this is true it prevents http from using keep-alive.
     req.Close = false // set to false when http keep alive is desired.
 	resp, err := hc.Do(req)
@@ -182,7 +182,7 @@ func (u *MTReader) procLine(spec *TestSpec) {
 			reqStat = false
 		}
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
 
 	// If KeepAs is specified in the input spec then save it for
 	// latter interpolation.  If the call fails then save the default
