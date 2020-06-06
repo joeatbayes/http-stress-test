@@ -127,7 +127,7 @@ func (u *MTReader) procLine(spec *TestSpec) {
 		return
 	}
 
-	// TODO: Ieterate over set headers
+	//  Ieterate over set headers
 	if spec.Headers != nil {
 		for key, val := range spec.Headers {
 			//fmt.Println("L94: header key=", key, " val=", val)
@@ -151,8 +151,6 @@ func (u *MTReader) procLine(spec *TestSpec) {
 	if err != nil {
 		fmt.Fprintln(u.logFile, "FAIL: L85: id=", spec.Id, " message=", spec.Message, "err=", err)
 		fmt.Println("FAIL: L85: id=", spec.Id, " message=", spec.Message, "err=", err)
-		u.perf.NumFail += 1
-		u.reqPending--
 		reqStat = false
 		if spec.KeepBodyAs > " " && spec.KeepBodyDefault > " " {
 			//fmt.Println("L106: keep default as failure keepBodyAs=", spec.KeepBodyAs, " default=", spec.KeepBodyDefault)
@@ -160,6 +158,8 @@ func (u *MTReader) procLine(spec *TestSpec) {
 			//fmt.Println("L107: u.pargs.NamedStr=", u.pargs.NamedStr)
 			u.pargs.NamedStr[spec.KeepBodyAs] = spec.KeepBodyDefault
 		}
+     	u.perf.NumFail += 1
+		u.reqPending--
 		return
 	}
 	
@@ -425,7 +425,7 @@ func main() {
 	fmt.Println("L425: All files read")
 	close(u.linesChan)
 	jutil.Elap("L374: finished processing all input", startms, jutil.Nowms())
-	time.Sleep(1500)
+	time.Sleep(1)
 	<-u.isDone // wait until queue has been marked as finished.
 	jutil.TimeTrack(u.logFile, start, "Finished Read test records\n")
     finishWaitStart := jutil.Nowms()
