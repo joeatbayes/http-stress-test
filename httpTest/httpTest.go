@@ -17,7 +17,7 @@ import (
 	"strings"
 	s "strings"
 	"time"
-
+    "sync"
 	"github.com/joeatbayes/goutil/jutil"
 )
 
@@ -33,6 +33,7 @@ type MTReader struct {
 	maxRecPerSec float64
 	reqMade      int
 	start        float64
+	writeLock    sync.Mutex
 }
 
 func makeMTReader(outFiName string) *MTReader {
@@ -89,8 +90,9 @@ func keepLines(s string, n int) string {
 func (u *MTReader) procLine(spec *TestSpec) {
 	u.reqPending += 1
 	u.perf.NumReq += 1
-	fmt.Println("maxRecPerSec=", u.maxRecPerSec, " requestsPerSec=", u.requestsPerSec())
-	for u.maxRecPerSec > 0 && u.requestsPerSec() > u.maxRecPerSec && u.reqMade > 0 {
+	if u.maxRecPerSec != -1 {
+	  fmt.Println("maxRecPerSec=", u.maxRecPerSec, " requestsPerSec=", u.requestsPerSec())
+	  for u.maxRecPerSec > 0 && u.requestsPerSec() > u.maxRecPerSec && u.reqMade > 0 {
 		// slow down to comply with maxReqPerSec directive
 		// whenever maxReqPerSec has been specified as a
 		// positive number.
@@ -99,16 +101,20 @@ func (u *MTReader) procLine(spec *TestSpec) {
 		// TODO: Compute exact time we need to sleep to reach
 		// the RPS and then delay by that amount rather than
 		// polling.
-	}
+	  }
+    }
 	u.reqMade += 1
 	startms := jutil.Nowms()
 	//fmt.Println("L45: spec=", spec)
 	//fmt.Println("L49: spec.Rematch=", spec.Rematch)
 	uri := spec.Uri
+	// ===== JOE THIS IS SUSPICOUS See:http://networkbit.ch/golang-http-client/
+	// req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
 	hc := http.Client{}
 	reqStat := true
 	errMsg := ""
 	//fmt.Println("L49: spec id=", spec.Id, " keepBodyAs=", spec.KeepBodyAs, "default=", spec.KeepBodyDefault)
+    //fmt.Println("L117: uri=", uri)
 	req, err := http.NewRequest(spec.Verb, u.pargs.Interpolate(uri), bytes.NewBuffer([]byte(u.pargs.Interpolate(spec.Body))))
 	//fmt.Println("L50: req=", req, " err=", err)
 	if err != nil {
@@ -137,11 +143,10 @@ func (u *MTReader) procLine(spec *TestSpec) {
 			spec.KeepBodyAs = s.TrimPrefix(s.ToLower(spec.KeepBodyAs), " ")
 		}
 	}
-
 	req.Header.Set("Connection", "close")
 	req.Close = true
 	resp, err := hc.Do(req)
-	//fmt.Println(" L60: reps=", resp, "err=", err)
+	//fmt.Println("L146: reps=", resp, "err=", err)
 	if err != nil {
 		fmt.Fprintln(u.logFile, "FAIL: L85: id=", spec.Id, " message=", spec.Message, "err=", err)
 		fmt.Println("FAIL: L85: id=", spec.Id, " message=", spec.Message, "err=", err)
@@ -153,13 +158,11 @@ func (u *MTReader) procLine(spec *TestSpec) {
 			//fmt.Println("L108: u.pargs=", u.pargs)
 			//fmt.Println("L107: u.pargs.NamedStr=", u.pargs.NamedStr)
 			u.pargs.NamedStr[spec.KeepBodyAs] = spec.KeepBodyDefault
-			fmt.Println("L108: XXX")
 		}
 		return
 	}
-	defer resp.Body.Close()
-
-	//fmt.Println(" L68: reps=", resp, " status=", resp.StatusCode, "err=", err)
+	
+	//fmt.Println("L166: resp=", resp, " status=", resp.StatusCode, "err=", err)
 	body, _ := ioutil.ReadAll(resp.Body)
 	bodyStr := string(body)
 	if resp.StatusCode != spec.Expected {
@@ -167,6 +170,7 @@ func (u *MTReader) procLine(spec *TestSpec) {
 		reqStat = false
 	}
 
+	//fmt.Println("L173: bodyStr=", bodyStr)
 	// Add Logic to check the RE Pattern
 	// match for body result
 	if spec.Rematch != "" && spec.Rematch > " " {
@@ -177,16 +181,21 @@ func (u *MTReader) procLine(spec *TestSpec) {
 			reqStat = false
 		}
 	}
+	resp.Body.Close()
 
 	// If KeepAs is specified in the input spec then save it for
 	// latter interpolation.  If the call fails then save the default
 	// if specified.
-	if resp.StatusCode != spec.Expected && spec.KeepBodyDefault > " " {
-		u.pargs.NamedStr[spec.KeepBodyAs] = spec.KeepBodyDefault
-	} else {
+    if spec.KeepBodyDefault > " " {
+      u.writeLock.Lock()
+	  if resp.StatusCode != spec.Expected  {
+	 	u.pargs.NamedStr[spec.KeepBodyAs] = spec.KeepBodyDefault
+	  } else {
 		u.pargs.NamedStr[spec.KeepBodyAs] = bodyStr
-	}
-
+      }
+      u.writeLock.Unlock()
+    }
+    
 	// Add Logic to check the RE Pattern
 	// match for body result
 	if spec.ReNoMatch != "" && spec.ReNoMatch > " " {
@@ -197,7 +206,7 @@ func (u *MTReader) procLine(spec *TestSpec) {
 			reqStat = false
 		}
 	}
-
+    
 	u.perf.NumSinceStatPrint += 1
 	u.perf.CheckAndPrintStat(u.logFile)
 
@@ -219,7 +228,8 @@ func (u *MTReader) procLine(spec *TestSpec) {
 		fmt.Printf(tbuff)
 	}
 	u.reqPending--
-	time.Sleep(10)
+	time.Sleep(10) 
+    
 }
 
 var (

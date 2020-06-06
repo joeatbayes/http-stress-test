@@ -13,7 +13,15 @@
 *.out.txt
 *.log.txt
 pkg*
+httpTest/src/github.com
+httpTest/src/github.com/*
 src/github.com/*
 
 # Build directory for various binaries
-dist/
+httpTest/bin/*
+httpTest/bin
+*kate-swp
+t.t
+t.t*
+dist*
+*src/github*

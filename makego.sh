@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -e
+export GOPATH=`pwd`
+export PATH=$GOPATH:$PATH
 
 build_httpTest() {
     local _go_operating_system="${1}"
