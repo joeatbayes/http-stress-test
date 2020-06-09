@@ -89,9 +89,11 @@ func keepLines(s string, n int) string {
 }
 
 func (u *MTReader) procLine(spec *TestSpec) {
-        //time.Sleep(2 * time.Second)
-	u.reqPending += 1
-	u.perf.NumReq += 1
+    //fmt.Println("L92: procLiine")
+    u.writeLock.Lock()
+	  u.reqPending += 1
+	  u.perf.NumReq += 1
+	u.writeLock.Unlock()
 	if u.maxRecPerSec != -1 {
 	  fmt.Println("maxRecPerSec=", u.maxRecPerSec, " requestsPerSec=", u.requestsPerSec())
 	  for u.maxRecPerSec > 0 && u.requestsPerSec() > u.maxRecPerSec && u.reqMade > 0 {
@@ -105,9 +107,11 @@ func (u *MTReader) procLine(spec *TestSpec) {
 		// polling.
 	  }
     }
-	u.reqMade += 1
+    u.writeLock.Lock()
+	  u.reqMade += 1
+	u.writeLock.Unlock()
 	startms := jutil.Nowms()
-	//fmt.Println("L45: spec=", spec)
+	//fmt.Println("L114: spec=", spec)
 	//fmt.Println("L49: spec.Rematch=", spec.Rematch)
 	uri := spec.Uri
 	// ===== JOE THIS IS SUSPICOUS See:http://networkbit.ch/golang-http-client/
@@ -115,16 +119,20 @@ func (u *MTReader) procLine(spec *TestSpec) {
 	hc := http.Client{}
 	reqStat := true
 	errMsg := ""
-	//fmt.Println("L49: spec id=", spec.Id, " keepBodyAs=", spec.KeepBodyAs, "default=", spec.KeepBodyDefault)
-    //fmt.Println("L117: uri=", uri)
+	//fmt.Println("L122: spec id=", spec.Id, " keepBodyAs=", spec.KeepBodyAs, "default=", spec.KeepBodyDefault)
+    //fmt.Println("L123: uri=", uri)
 	req, err := http.NewRequest(spec.Verb, u.pargs.Interpolate(uri), bytes.NewBuffer([]byte(u.pargs.Interpolate(spec.Body))))
 	//fmt.Println("L50: req=", req, " err=", err)
 	if err != nil {
+        u.writeLock.Lock()
 		u.perf.NumFail += 1
-		serr := fmt.Sprintln(u.logFile, "FAIL: L74: id=", spec.Id, " message=", spec.Message, " error opening uri=", uri, " err=", err)
+		u.writeLock.Unlock()
+		serr := fmt.Sprintln(u.logFile, "FAIL: L128: id=", spec.Id, " message=", spec.Message, " error opening uri=", uri, " err=", err)
 		fmt.Println(serr)
 		fmt.Fprintln(u.logFile, serr)
-		u.reqPending--
+        u.writeLock.Lock()
+		  u.reqPending--
+		u.writeLock.Unlock()
 		reqStat = false
 		return
 	}
@@ -146,19 +154,22 @@ func (u *MTReader) procLine(spec *TestSpec) {
 		}
 	}
 	req.Header.Set("Connection", "keep-alive") // use "close" when you want to disable keep alive
+    req.Close = false // set to false when http keep alive is desired.
 	//req.Header.Set("Connection", "close") // use "close" when you want to disable keep alive
 	//req.Close = true // When this is true it prevents http from using keep-alive.
-    req.Close = false // set to false when http keep alive is desired.
+
 	resp, err := hc.Do(req)
-	//fmt.Println("L146: reps=", resp, "err=", err)
+	//fmt.Println("L158: reps=", resp, "err=", err)
 	if err != nil {
 		fmt.Fprintln(u.logFile, "FAIL: L85: id=", spec.Id, " message=", spec.Message, "err=", err)
                 if (err == io.EOF) {
-                   fmt.Println("L157: Error premature closed connection")
-                   http.DefaultTransport.(*http.Transport).CloseIdleConnections()
-                   time.Sleep(2 * time.Second)
+                   u.writeLock.Lock()                    
+                     fmt.Println("L157: Error premature closed connection")
+                     http.DefaultTransport.(*http.Transport).CloseIdleConnections()
+                     time.Sleep(2 * time.Second)
+                   u.writeLock.Unlock()
 		}
-                fmt.Println("FAIL: L85: id=", spec.Id, " message=", spec.Message, "err=", err)
+        fmt.Println("FAIL: L168: id=", spec.Id, " message=", spec.Message, "err=", err)
 		reqStat = false
 		if spec.KeepBodyAs > " " && spec.KeepBodyDefault > " " {
 			//fmt.Println("L106: keep default as failure keepBodyAs=", spec.KeepBodyAs, " default=", spec.KeepBodyDefault)
@@ -166,23 +177,24 @@ func (u *MTReader) procLine(spec *TestSpec) {
 			//fmt.Println("L107: u.pargs.NamedStr=", u.pargs.NamedStr)
 			u.pargs.NamedStr[spec.KeepBodyAs] = spec.KeepBodyDefault
 		}
-     	u.perf.NumFail += 1
-		u.reqPending--
+		u.writeLock.Lock()
+     	  u.perf.NumFail += 1
+		  u.reqPending--
+		u.writeLock.Unlock()
 		return
 	}
 	
-	//fmt.Println("L166: resp=", resp, " status=", resp.StatusCode, "err=", err)
-	defer resp.Body.Close()
+	//fmt.Println("L183: resp=", resp, " status=", resp.StatusCode, "err=", err)
 	body, _ := ioutil.ReadAll(resp.Body)
 	bodyStr := string(body)
 	if resp.StatusCode != spec.Expected {
 		errMsg = fmt.Sprintln("\tL:97 Expected StatusCode=", spec.Expected, " got=", resp.StatusCode)
 		reqStat = false
 	}
-	//resp.Body.Close()
+	resp.Body.Close()
 
 
-	//fmt.Println("L173: bodyStr=", bodyStr)
+	// fmt.Println("L193: bodyStr=", bodyStr)
 	// Add Logic to check the RE Pattern
 	// match for body result
 	if spec.Rematch != "" && spec.Rematch > " " {
@@ -199,11 +211,11 @@ func (u *MTReader) procLine(spec *TestSpec) {
 	// if specified.
     if spec.KeepBodyDefault > " " {
       u.writeLock.Lock()
-	  if resp.StatusCode != spec.Expected  {
-	 	u.pargs.NamedStr[spec.KeepBodyAs] = spec.KeepBodyDefault
-	  } else {
-		u.pargs.NamedStr[spec.KeepBodyAs] = bodyStr
-      }
+	    if resp.StatusCode != spec.Expected  {
+	 	  u.pargs.NamedStr[spec.KeepBodyAs] = spec.KeepBodyDefault
+	    } else {
+		  u.pargs.NamedStr[spec.KeepBodyAs] = bodyStr
+        }
       u.writeLock.Unlock()
     }
     
@@ -218,29 +230,38 @@ func (u *MTReader) procLine(spec *TestSpec) {
 		}
 	}
     
-	u.perf.NumSinceStatPrint += 1
-	u.perf.CheckAndPrintStat(u.logFile)
-
-	//fmt.Println("L82: body len=", len(string(body)))
+    
+    u.writeLock.Lock()
+	  u.perf.NumSinceStatPrint += 1
+	  u.perf.CheckAndPrintStat(u.logFile)
+	u.writeLock.Unlock()
+	
+	//fmt.Println("L236: body len=", len(string(body)))
 	//	fmt.Println("L82: body =", string(body))
 	//len(body)
 	//defer jutil.TimeTrack(now, "finished id=" + id)
 	endms := jutil.Nowms()
 	elapms := endms - startms
 	if reqStat == true {
-		u.perf.NumSuc += 1
-		tbuff := fmt.Sprintf("SUCESS: L125: elap=%4.3fms\trps=%4.1f\tid=%s\tmessage=%s", elapms, u.requestsPerSec(), spec.Id, spec.Message)
+        //u.writeLock.Lock()
+		  u.perf.NumSuc += 1
+		//u.writeLock.Unlock()
+		tbuff := fmt.Sprintf("SUCESS: L246: elap=%4.3fms\trps=%4.1f\tid=%s\tmessage=%s", elapms, u.requestsPerSec(), spec.Id, spec.Message)
 		fmt.Println(tbuff)
 		fmt.Fprintln(u.logFile, tbuff)
 	} else {
-		u.perf.NumFail += 1
-		tbuff := fmt.Sprintf("FAIL: L128: elap=%4.3fms\t id=%v \tmessage=%s \terr Msg=%s  \tverb=%s uri=%s\n", elapms, spec.Id, spec.Message, errMsg, spec.Verb, spec.Uri)
+        //u.writeLock.Lock()
+		  u.perf.NumFail += 1
+		//u.writeLock.Unlock()
+		tbuff := fmt.Sprintf("FAIL: L253: elap=%4.3fms\t id=%v \tmessage=%s \terr Msg=%s  \tverb=%s uri=%s\n", elapms, spec.Id, spec.Message, errMsg, spec.Verb, spec.Uri)
 		fmt.Fprintln(u.logFile, tbuff)
 		fmt.Printf(tbuff)
 	}
-	u.reqPending--
+	u.writeLock.Lock()
+	  u.reqPending--
+	u.writeLock.Unlock()
 	time.Sleep(10) 
-        //time.Sleep(2 * time.Second)
+    //time.Sleep(2 * time.Second)
     
 }
 
@@ -307,25 +328,29 @@ func (u *MTReader) processFile(inFiName string) {
 		} else if aline[0] == '#' {
 			if strings.HasPrefix(aline, "#END") {
 				recStr := strings.TrimSpace(b.String())
-				//fmt.Println("L228: RecStr=", recStr)
+				//fmt.Println("L328: RecStr=", recStr)
 				if len(recStr) > 0 {
 					b.Reset()
 					spec := TestSpec{}
 					err := json.Unmarshal([]byte(recStr), &spec)
-					//fmt.Println("L150: spec=", &spec, "err=", err)
+					//fmt.Println("L333: spec=", &spec, "err=", err)
 					if err != nil {
-						fmt.Println("L222: FAIL: to parse err=", err, "str=", recStr)
+						fmt.Println("L335: FAIL: to parse err=", err, "str=", recStr)
 					} else {
-						u.linesChan <- spec
+                        //fmt.Println("L337: before add channel")
+                        //u.writeLock.Lock()
+						  u.linesChan <- spec
+						//u.writeLock.Unlock()
+                        //mt.Println("L341: after add channel")
 					}
 				}
 			} else if strings.HasPrefix(aline, "#WAIT") {
 				// Add a Pause
 				time.Sleep(9500)
-				fmt.Fprintln(u.logFile, "L208: waiting queue=", len(u.linesChan), "reqPending=", u.reqPending)
+				fmt.Fprintln(u.logFile, "L346: waiting queue=", len(u.linesChan), "reqPending=", u.reqPending)
 				for len(u.linesChan) > 0 || u.reqPending > 0 {
 					u.logFile.Sync()
-					fmt.Fprintln(u.logFile, "L209: waiting queue=", len(u.linesChan), "reqPending=", u.reqPending)
+					fmt.Fprintln(u.logFile, "L348: waiting queue=", len(u.linesChan), "reqPending=", u.reqPending)
 					u.logFile.Sync()
 					time.Sleep(5500)
 					continue
