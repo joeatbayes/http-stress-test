@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+        "io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -88,6 +89,7 @@ func keepLines(s string, n int) string {
 }
 
 func (u *MTReader) procLine(spec *TestSpec) {
+        //time.Sleep(2 * time.Second)
 	u.reqPending += 1
 	u.perf.NumReq += 1
 	if u.maxRecPerSec != -1 {
@@ -144,13 +146,19 @@ func (u *MTReader) procLine(spec *TestSpec) {
 		}
 	}
 	req.Header.Set("Connection", "keep-alive") // use "close" when you want to disable keep alive
+	//req.Header.Set("Connection", "close") // use "close" when you want to disable keep alive
 	//req.Close = true // When this is true it prevents http from using keep-alive.
     req.Close = false // set to false when http keep alive is desired.
 	resp, err := hc.Do(req)
 	//fmt.Println("L146: reps=", resp, "err=", err)
 	if err != nil {
 		fmt.Fprintln(u.logFile, "FAIL: L85: id=", spec.Id, " message=", spec.Message, "err=", err)
-		fmt.Println("FAIL: L85: id=", spec.Id, " message=", spec.Message, "err=", err)
+                if (err == io.EOF) {
+                   fmt.Println("L157: Error premature closed connection")
+                   http.DefaultTransport.(*http.Transport).CloseIdleConnections()
+                   time.Sleep(2 * time.Second)
+		}
+                fmt.Println("FAIL: L85: id=", spec.Id, " message=", spec.Message, "err=", err)
 		reqStat = false
 		if spec.KeepBodyAs > " " && spec.KeepBodyDefault > " " {
 			//fmt.Println("L106: keep default as failure keepBodyAs=", spec.KeepBodyAs, " default=", spec.KeepBodyDefault)
@@ -164,13 +172,14 @@ func (u *MTReader) procLine(spec *TestSpec) {
 	}
 	
 	//fmt.Println("L166: resp=", resp, " status=", resp.StatusCode, "err=", err)
+	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
 	bodyStr := string(body)
 	if resp.StatusCode != spec.Expected {
 		errMsg = fmt.Sprintln("\tL:97 Expected StatusCode=", spec.Expected, " got=", resp.StatusCode)
 		reqStat = false
 	}
-	resp.Body.Close()
+	//resp.Body.Close()
 
 
 	//fmt.Println("L173: bodyStr=", bodyStr)
@@ -230,7 +239,8 @@ func (u *MTReader) procLine(spec *TestSpec) {
 		fmt.Printf(tbuff)
 	}
 	u.reqPending--
-	//time.Sleep(10) 
+	time.Sleep(10) 
+        //time.Sleep(2 * time.Second)
     
 }
 
@@ -382,6 +392,12 @@ func main() {
 	}
 	MaxWorkerThread := parms.Ival("maxthread", int(DefMaxWorkerThread))
 	fmt.Println(parms.String())
+        transport := http.DefaultTransport.(*http.Transport) 
+        transport.MaxIdleConnsPerHost = MaxWorkerThread + 10
+        transport.MaxIdleConns = MaxWorkerThread + 10
+        transport.MaxConnsPerHost = MaxWorkerThread + 10
+        transport.DisableKeepAlives = false
+        
 	inPathStr := parms.Sval("in", DefInFiName)
 	outFiName := parms.Sval("out", DefOutFiName)
 	u := makeMTReader(outFiName)
@@ -430,13 +446,13 @@ func main() {
 	jutil.TimeTrack(u.logFile, start, "Finished Read test records\n")
     finishWaitStart := jutil.Nowms()
 	for u.reqPending > 0 {
-		time.Sleep(1500)
-        fmt.Println("L434: Finished wait u.reqPending=", u.reqPending)
-        jutil.Elap("L435: finish wait for", finishWaitStart, jutil.Nowms())
-        if (jutil.Nowms() - finishWaitStart > 60000) {
+          time.Sleep(2 * time.Second)
+          fmt.Println("L434: Finished wait u.reqPending=", u.reqPending)
+          jutil.Elap("L435: finish wait for", finishWaitStart, jutil.Nowms())
+          if (jutil.Nowms() - finishWaitStart > 60000) {
             fmt.Println("L436: abort waited to long")
             break
-        }
+          }
 	}
 	if u.reqPending <= 0 {
 	  jutil.Elap("L382: Queue is empty", startms, jutil.Nowms())
