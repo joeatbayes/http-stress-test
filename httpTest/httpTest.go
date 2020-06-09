@@ -226,6 +226,7 @@ func (u *MTReader) procLine(spec *TestSpec) {
 		//fmt.Println("118 match=", match, "ReNoMatch=", spec.ReNoMatch)
 		if match == true {
 			errMsg = fmt.Sprintln(" L120:FAIL ReNoMatch pattern found in record reNoMatch=", spec.ReNoMatch, " match=", match)
+            fmt.Println("\nL229 bodyStr=", bodyStr)
 			reqStat = false
 		}
 	}
@@ -256,6 +257,7 @@ func (u *MTReader) procLine(spec *TestSpec) {
 		tbuff := fmt.Sprintf("FAIL: L253: elap=%4.3fms\t id=%v \tmessage=%s \terr Msg=%s  \tverb=%s uri=%s\n", elapms, spec.Id, spec.Message, errMsg, spec.Verb, spec.Uri)
 		fmt.Fprintln(u.logFile, tbuff)
 		fmt.Printf(tbuff)
+        fmt.Println("\nL260 bodyStr=", bodyStr)
 	}
 	u.writeLock.Lock()
 	  u.reqPending--
